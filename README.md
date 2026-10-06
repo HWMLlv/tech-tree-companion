@@ -24,6 +24,14 @@ No separate `runtime` directory is needed. The font worker, WebAssembly code, an
 4. Configure **快捷轮盘**, **节点字体**, and **默认连线** in settings. Existing cards or arrows change only when explicitly updated. **优化选中节点附件（保留字体设置）** rebuilds selected cards using their existing font settings.
 5. Open **资源管理** to inspect attachment references, change card attachment folder/naming, or restore recycled files. Scanning does not delete files. Unreferenced owned attachments are retained for at least seven days before moving to the plugin's recoverable recycle area. After a further thirty days, a separate user-confirmed action can move them to the system trash. Recovery operations are guarded when drawings are open or scans are incomplete. Unknown/legacy attachments are not automatically claimed or deleted.
 
+### Card icons
+
+The module properties panel retains the original 10 icons for immediate one-click selection. **更多图标** opens the independent 30-icon picker in four groups: common icons, resources/materials, production equipment, and processes/logistics. Its current-icon preview stays synchronized with quick selections and confirmed popup selections, including extended icons. The new resource choices include ore, rock, crystal, ingot, powder, gravel, wood, and gas. Icons use the same outline style as the existing set and require no downloads.
+
+In **新建科技节点** or **编辑节点**, click **更换节点图标**. If the card contains multiple icon modules, choose which one to replace. **使用此图标** updates the editor draft; creating or saving the node applies it to the drawing. Cancel leaves the draft unchanged. Only the selected icon's shape changes: its color, position, size, card fields, links, and other parameters are retained. A saved change uses the drawing's normal undo/redo history.
+
+If the selected template has no icon module, the entry stays disabled with an explanation. Add an icon module in **模板中心** first; the picker does not automatically add one or change the card layout. In the template editor, select an icon module and either click a quick icon or use **更多图标** to open the same picker. Template editing retains its existing save and undo behavior; existing cards are not automatically rewritten.
+
 ## Network, privacy, and storage
 
 There are no accounts, payments, advertisements, analytics, client-side telemetry, or external file access in this plugin.

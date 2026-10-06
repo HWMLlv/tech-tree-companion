@@ -7,6 +7,12 @@ export const moduleDefaultFontSize=type=>type==='title'?22:type==='button'?12:16
 export const buttonFill=m=>m.fillColor??'#dbeafe';
 export const clone=x=>structuredClone(x);
 export const uid=()=>crypto.randomUUID();
+export function replaceModuleIcon(template,id,key){
+ const module=template.modules.find(m=>m.id===id);
+ if(module?.type!=='icon')throw Error('请选择已有的图标模块');
+ if(!Object.hasOwn(ICONS,key))throw Error('请选择支持的图标');
+ module.icon=key;
+}
 export const DEFAULT_TEMPLATE={id:'builtin-tech',version:1,name:'基础科技卡片',width:352,height:192,grid:8,background:'#eff6ff',border:'#475569',modules:[
  {id:'title',type:'title',field:'title',label:'科技名称',x:16,y:12,w:272,h:40,fontSize:22,color:'#1e293b',align:'left'},
  {id:'summary',type:'summary',field:'summary',label:'摘要',x:16,y:56,w:320,h:48,fontSize:16,color:'#334155',align:'left'},

@@ -1,5 +1,5 @@
 import {replaceSvg} from './svg-dom.js';
-import {ICONS,iconSVG} from './icons.js';
+import {iconInput} from './icon-ui.js';
 import {appearance,resizeTemplate,tidyNumber} from './appearance.js';
 import {fontInput} from './font-ui.js';
 import {moduleFontWeight,FONT_SIZES,buttonFill} from './model.js';
@@ -52,7 +52,7 @@ export function drawTemplateProperties(view){
  const set=(key,v)=>edit(d=>d.modules.find(x=>x.id===m.id)[key]=v);
  textInput(content,m.type==='text'?'固定文字':['divider','icon'].includes(m.type)?'模块名称':'显示名称',m.label,'text',v=>set('label',v));
  if(m.type==='divider')content.createDiv({cls:'tt-muted',text:'模块名称仅用于布局编辑时识别，不显示在卡片中。'});
- if(m.type==='icon')choices(content,'图标',Object.entries(ICONS).map(([value,i])=>({value,label:i.label,icon:iconSVG(value)})),m.icon,v=>set('icon',v));
+ if(m.type==='icon'){content.createDiv({cls:'tt-style-label',text:'图标'});iconInput(content,m.icon,v=>set('icon',v),{app:view.app,owner:view.plugin,color:m.color});}
  if(m.type==='button'){const row=content.createEl('label',{cls:'tt-form-label',text:'点击按钮时'}),s=row.createEl('select');for(const [v,label]of [['details','打开详情'],['edit','编辑节点']])s.createEl('option',{value:v,text:label});s.value=m.action;s.onchange=()=>set('action',s.value);}
  colorControls(content,m.type==='divider'?'线条颜色':m.type==='icon'?'图标颜色':'文字颜色',STROKES,m.color,v=>set('color',v),{owner:view.plugin});
  if(m.type==='button')colorControls(content,'填充颜色',BACKGROUNDS.filter(c=>c!=='transparent'),buttonFill(m),v=>set('fillColor',v),{owner:view.plugin});
