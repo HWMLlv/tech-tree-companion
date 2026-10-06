@@ -36,6 +36,30 @@ Settings, templates, asset records, and retained detail drafts use Obsidian's pl
 
 Linked note edits replace only the validated heading section or whole note explicitly linked to the card. The plugin checks for concurrent source changes before writing. Keep vault backups, particularly before bulk changes. Native live editing aims to retain host Markdown/plugin styling, but third-party editor extensions and private Excalidraw APIs are not guaranteed compatible.
 
+### Vault scanning and clipboard access
+
+- **Vault enumeration and reference scanning:** Resource management uses `vault.getFiles()` to list visible vault files. To avoid recycling a card attachment that is still in use, it reads relevant `.md`, `.canvas`, `.json`, `.excalidraw`, `.svg`, `.html`, and `.css` files, checks Obsidian's resolved links, and includes open editor drafts in its local reference check. Registered card attachments and the plugin's default attachment/recycle folders are excluded from the general content scan; owned SVGs may be read separately for integrity checks and recovery. File paths and contents are not sent to a server.
+- **When scans run:** A scan is scheduled after plugin startup and relevant Excalidraw file changes. Opening resource management or its settings summary, clicking the scan/refresh button, and performing recovery/recycling operations also request reference checks. Background scanning maintains local resource records; it does not move or delete card attachments. Moving attachments to the recycle area or system trash requires a separate user-confirmed action. Avoiding the scan button alone does not disable background scanning; disabling the plugin stops its scheduled scans.
+- **Clipboard writes:** Clicking **复制草稿** (Copy draft) writes the current detail draft to the system clipboard and replaces its previous text. The plugin's own feature code does not actively read or monitor the system clipboard. Standard user-initiated paste in Obsidian's native editor is handled by the host. Avoid the Copy draft button to leave the clipboard untouched by this feature.
+
+These capabilities may remain listed as community review recommendations because they are required by the corresponding features; documentation does not remove the underlying capability.
+
+## Release provenance
+
+The [GitHub Actions workflow](.github/workflows/validate.yml) validates metadata, installs locked dependencies, runs lint and tests, and builds the three standard release files. Successful builds on this repository's `main` branch or version tags then generate GitHub artifact attestations for those exact files. Pull-request validation does not issue attestations. The workflow uploads a `community-release` artifact and does not publish or replace releases automatically.
+
+For a new release, upload the three files from the successful version-tag build's artifact. For an existing release, an attestation covers an attachment only when its SHA-256 matches the attested file; do not assume that a successful workflow attests different manually built files. Attestations establish build provenance, not a security audit or an Obsidian approval.
+
+After downloading release assets, users with GitHub CLI can verify each file, for example:
+
+```sh
+gh attestation verify main.js --repo HWMLlv/tech-tree-companion
+gh attestation verify manifest.json --repo HWMLlv/tech-tree-companion
+gh attestation verify styles.css --repo HWMLlv/tech-tree-companion
+```
+
+See [GitHub's artifact attestation documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
+
 ## Development
 
 Use Node.js **24 LTS** and npm:
@@ -60,3 +84,7 @@ Native font assets come from the installed Excalidraw runtime and retain their u
 ---
 
 中文说明：本插件用于 Excalidraw 科技树卡片、模板、连线与关联正文管理，当前界面为中文。发布版只需三个标准文件，无需额外 runtime 文件夹。首次使用中文手写字形需从字体 CDN 下载，缓存后可离线；不会上传正文或仓库内容。模板、字体、连线的设置不会自动改写已有卡片，需主动应用。资源扫描只统计引用；回收和移至系统回收站是独立操作，并有保留期与引用核验。请保留仓库备份。
+
+权限说明：资源扫描会列出仓库文件，读取上述相关格式的内容，并检查已打开的编辑草稿，以避免错误回收仍被引用的附件；检查在本地进行，不上传正文或路径。启动插件、相关绘图文件变化、打开资源管理或设置中的资源摘要、主动刷新及回收/恢复操作均可能触发扫描，关闭插件会停止其计划扫描。扫描本身不移动或删除卡片附件。“复制草稿”仅在点击后写入系统剪贴板并替换原有文本，插件功能不主动读取或监控剪贴板；原生编辑器的主动粘贴由宿主处理。
+
+发布来源说明：成功的 GitHub Actions 主分支或版本标签构建会为三个发布文件生成来源证明；PR 只验证，不生成证明。今后发布时使用对应版本标签构建的 `community-release` 附件。现有 Release 只有与构建文件的 SHA-256 完全一致时，才由该证明覆盖；来源证明不等于安全审计或 Obsidian 审核通过。
