@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {FontCache,trustedFontURL,validWOFF2} from '../src/font-cache.js';
+import {fontPlan} from '../src/native-fonts.js';
+// Production runs in an Obsidian browser window; Node's test process supplies its timers.
+globalThis.window={setTimeout,clearTimeout};
+const url='https://unpkg.com/@zsviczian/excalidraw@0.18.111/dist/excalidraw-assets/Xiaolai-Regular-09850c4077f3fffe707905872e0e2460.woff2';
+const buffer=()=>{const b=new Uint8Array(48);b.set([119,79,70,50]);new DataView(b.buffer).setUint32(8,48);return b.buffer;};
+const fixture=()=>{const files=new Map();return {files,adapter:{readBinary:async p=>{if(!files.has(p))throw Error('missing');return files.get(p);},writeBinary:async(p,b)=>files.set(p,b),exists:async()=>true,mkdir:async()=>{}}};};
+test('font downloads are deduplicated, persisted and reusable offline by a new cache',async()=>{const f=fixture();let calls=0;const c=new FontCache({...f,directory:'plugin/font-cache',request:async()=>{calls++;return buffer();}});const [a,b]=await Promise.all([c.get(url),c.get(url)]);assert.equal(a,b);assert.equal(calls,1);assert.equal(f.files.size,1);const offline=new FontCache({...f,directory:'plugin/font-cache',request:async()=>{throw Error('offline');}});assert.equal(await offline.get(url),a);assert.equal(offline.diskHits,1);assert.equal(offline.downloads,0);});
+test('only fixed version Xiaolai URLs are accepted and remote URLs never enter CSS',async()=>{const c=new FontCache({...fixture(),directory:'p',request:async()=>{throw Error('must not fetch');}});for(const bad of [url+'?tracking=1',url.replace('unpkg.com','evil.test'),url.replace('0.18.111','latest'),'http://localhost/a']){assert.equal(trustedFontURL(bad),false);await assert.rejects(c.get(bad),/来源/);}const registry=new Map([[100,{fontFaces:[{urls:[new URL(url)],fontFace:{unicodeRange:'U+4E00-9FFF',weight:'400',style:'normal'}}]}]]);const plan=fontPlan(registry,'Excalifont','中');assert.equal(plan.pending.length,1);assert.equal(plan.css,'');assert.equal(fontPlan(registry,'Virgil','中').pending.length,0);assert.equal(fontPlan(registry,'Excalifont','Aa').pending.length,0);});
+test('bad cached data is repaired, invalid downloads are not cached, explicit retry recovers',async()=>{const f=fixture(),c=new FontCache({...f,directory:'p',request:async()=>new TextEncoder().encode('<html>error</html>').buffer});f.files.set(await c.path(url),new ArrayBuffer(2));await assert.rejects(c.get(url),/获取失败/);assert.equal(c.memory.size,0);assert.equal(c.downloads,0);c.request=async()=>buffer();await assert.rejects(c.get(url),/获取失败/);c.retry();await c.get(url);assert.equal(c.downloads,1);assert.ok(validWOFF2(f.files.get(await c.path(url))));const truncated=buffer().slice(0,47);assert.equal(validWOFF2(truncated),false);});
+test('unloading while a download is pending prevents caching and later registration',async()=>{const f=fixture();let finish,stopped=false;const c=new FontCache({...f,directory:'p',stopped:()=>stopped,request:()=>new Promise(r=>finish=r)});const pending=c.get(url);while(!finish)await new Promise(r=>setTimeout(r,0));stopped=true;finish(buffer());await assert.rejects(pending);assert.equal(f.files.size,0);assert.equal(c.memory.size,0);});
+
+test('missing or unsupported Chinese resource providers do not silently count as ready',()=>{const r=new Map([[5,{fontFaces:[{urls:['data:font/woff2;base64,QUJD'],fontFace:{unicodeRange:'U+0-FFFF',weight:'400',style:'normal'}}]}]]);assert.equal(fontPlan(r,'Excalifont','中文').available,false);assert.equal(fontPlan(r,'Excalifont','Aa').available,true);r.set(100,{fontFaces:[{urls:['https://evil.test/cjk.woff2'],fontFace:{unicodeRange:'U+4E00-9FFF',weight:'400',style:'normal'}}]});assert.equal(fontPlan(r,'Excalifont','中文').missingCJK,true);});
+
+test('a transient cache-directory failure can be retried without reloading the plugin',async()=>{
+ const f=fixture();let mkdirCalls=0;f.adapter.exists=async()=>false;f.adapter.mkdir=async()=>{if(++mkdirCalls===1)throw Error('transient directory failure');};
+ const c=new FontCache({...f,directory:'p',request:async()=>buffer()});await assert.rejects(c.get(url),/获取失败/);assert.equal(f.files.size,0);c.retry();await c.get(url);assert.equal(mkdirCalls,2);assert.equal(f.files.size,1);assert.equal(c.downloads,1);
+});
+test('different font requests share directory creation and all recover after it fails',async()=>{
+ const f=fixture(),second=url.replace('09850c4077f3fffe707905872e0e2460','19850c4077f3fffe707905872e0e2460');let calls=0,release;
+ f.adapter.exists=async()=>false;f.adapter.mkdir=()=>{calls++;return new Promise((resolve,reject)=>release={resolve,reject});};
+ const c=new FontCache({...f,directory:'p',request:async()=>buffer()});let pending=Promise.allSettled([c.get(url),c.get(second)]);while(calls===0)await new Promise(r=>setTimeout(r,0));await new Promise(r=>setTimeout(r,10));release.reject(Error('I/O'));assert.ok((await pending).every(r=>r.status==='rejected'));assert.equal(calls,1);
+ c.retry();pending=Promise.all([c.get(url),c.get(second)]);while(calls===1)await new Promise(r=>setTimeout(r,0));release.resolve();await pending;assert.equal(calls,2);assert.equal(f.files.size,2);
+});

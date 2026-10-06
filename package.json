@@ -1,0 +1,33 @@
+{
+  "name": "tech-tree-companion",
+  "version": "0.4.26",
+  "author": "HWMLlv",
+  "license": "MIT",
+  "private": true,
+  "overrides": {
+    "moment": "2.31.0"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.13",
+    "buffer": "6.0.3",
+    "esbuild": "0.28.2",
+    "lz-string": "1.5.0",
+    "markdown-it": "15.0.2",
+    "roughjs": "4.6.6",
+    "subset-font": "2.9.0"
+  },
+  "devDependencies": {
+    "eslint": "9.39.5",
+    "eslint-plugin-obsidianmd": "0.4.2",
+    "obsidian": "1.8.7"
+  }
+}

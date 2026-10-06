@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {NativeFonts} from '../src/native-fonts.js';import {NATIVE_FONTS} from '../src/fonts.js';import {trustedFontURL} from '../src/font-cache.js';import {nativeLibrary} from '../src/native-runtime.js';import {arrowType,withArrowType,previewArrow} from '../src/connection-preview.js';import {arrowAppState} from '../src/native-arrow-defaults.js';
+test('shared runtime without packageMap immediately exposes native fonts',()=>{
+ const registered=new Map(NATIVE_FONTS.map(f=>[f.id,{fontFaces:[{urls:['data:font/woff2;base64,QUJD'],fontFace:{weight:'400',style:'normal'}}]}]));
+ const lib={Fonts:{registered}},dependency={packageManager:{runtimePackage:{excalidrawLib:lib}}};
+ const plugin={app:{plugins:{plugins:{'obsidian-excalidraw-plugin':dependency}}}};
+ const service=new NativeFonts(plugin),doc={defaultView:{}};assert.equal(service.names(doc).length,7);assert.equal(nativeLibrary(plugin,doc),lib);
+});
+test('only known versioned new and old Xiaolai providers are trusted',()=>{const u='https://esm.sh/@zsviczian/excalidraw@0.18.140/dist/prod/fonts/Xiaolai/Xiaolai-Regular-09850c4077f3fffe707905872e0e2460.woff2';assert.equal(trustedFontURL(u),true);for(const bad of [u+'?x=1',u.replace('esm.sh','esm.sh.evil.test'),u.replace('0.18.140','latest'),u.replace('/Xiaolai/','/Other/'),u.replace('https:','http:')])assert.equal(trustedFontURL(bad),false);});
+test('arrow preview and native tool defaults agree on straight round and elbow semantics',()=>{const original={strokeWidth:4,strokeColor:'#2f9e44',opacity:70,startArrowhead:'dot',endArrowhead:'triangle'};for(const type of ['sharp','round','elbow']){const s=withArrowType(original,type),p=previewArrow(s);assert.equal(arrowType(s),type);assert.equal(arrowAppState(s).currentItemArrowType,type);assert.equal(p.points.length,type==='sharp'?2:4);for(const k of Object.keys(original))assert.equal(p[k],original[k]);assert.equal(p.startBinding,undefined);}assert.equal(original.elbowed,undefined);});

@@ -1,0 +1,10 @@
+import {replaceSvg} from './svg-dom.js';
+import {nextPlacement} from './placement.js';
+export class QuickPlacement{
+ constructor(plugin,view,source){this.plugin=plugin;this.view=view;this.target=plugin.target(view);this.sourceId=source.id;this.slot=-1;this.direction=null;const doc=view.containerEl.ownerDocument;this.el=doc.createElement('div');this.el.className='tt-placement-preview';this.card=this.el.createDiv({cls:'tt-placement-card'});replaceSvg(this.card,plugin.render(view,source.customData.techTree.template,{}).svg);this.hint=this.el.createDiv({cls:'tt-placement-hint',text:'按住 Ctrl 调整方向／位置 · 松开确认 · Esc 取消'});doc.body.appendChild(this.el);}
+ source(){this.plugin.checkTarget(this.view,this.target,false);return this.view.excalidrawAPI.getSceneElements().find(e=>e.id===this.sourceId&&!e.isDeleted);}
+ move(direction){const source=this.source();if(!source)throw Error('起点节点已不存在');const start=this.direction===direction?this.slot+1:0;this.position=nextPlacement(source,direction,this.view.excalidrawAPI.getSceneElements(),start);this.slot=this.position.slot;this.direction=direction;this.paint();}
+ paint(){const source=this.source();if(!source||!this.position)return;const s=this.view.excalidrawAPI.getAppState(),z=s.zoom.value;Object.assign(this.card.style,{left:s.offsetLeft+(this.position.x+s.scrollX)*z+'px',top:s.offsetTop+(this.position.y+s.scrollY)*z+'px',width:source.width*z+'px',height:source.height*z+'px'});Object.assign(this.hint.style,{left:Math.max(12,s.offsetLeft+20)+'px',top:Math.max(8,s.offsetTop+65)+'px'});}
+ async finish(){const p=this.plugin,v=this.view,source=this.source();if(!source||source.locked||!p.live(v)||p.view()!==v||p.modal||p.selected(v)?.id!==source.id||!this.position)return;const position=nextPlacement(source,this.direction,v.excalidrawAPI.getSceneElements(),this.slot);const id=await p.create(v,source.customData.techTree.template,{},null,position,source,this.direction);p.openNode(v,v.excalidrawAPI.getSceneElements().find(e=>e.id===id));}
+ destroy(){this.el.remove();}
+}

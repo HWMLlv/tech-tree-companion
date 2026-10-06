@@ -1,0 +1,9 @@
+{
+  "id": "tech-tree-companion",
+  "name": "Tech Tree Companion",
+  "version": "0.4.26",
+  "minAppVersion": "1.13.7",
+  "description": "Create and manage SVG cards, templates, connections, and linked note details in Excalidraw.",
+  "author": "HWMLlv",
+  "isDesktopOnly": true
+}

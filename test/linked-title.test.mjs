@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {titleForRelink,titleFromLink} from '../src/node-link-title.js';
+import {radialCommands,radialConfig} from '../src/radial-model.js';
+test('relink refreshes empty placeholder and previous document titles',()=>{for(const current of ['',undefined,'未命名科技','旧文档',' 旧文档 '])assert.equal(titleForRelink(current,'旧文档','新章节'),'新章节');});
+test('relink preserves custom titles including unlink then relink',()=>{assert.equal(titleForRelink('自定义科技','旧文档','新文档'),'自定义科技');assert.equal(titleForRelink('旧文档','','新文档'),'旧文档');});
+test('link title fallback distinguishes documents and headings and strips markdown extension',()=>{assert.equal(titleFromLink('[[科技/旧文档.md]]'),'旧文档');assert.equal(titleFromLink('[[科技/旧文档.md#第一节]]'),'第一节');assert.equal(titleFromLink(null),'');});
+test('plugin command catalog includes every own registration and excludes prefix lookalikes',()=>{const all=[{id:'tech:one',name:'One'},{id:'tech:two',name:'Two',checkCallback:()=>false},{id:'tech-other:bad',name:'Bad'},{id:'other:x',name:'X'}];assert.deepEqual(radialCommands(all,'tech',true).map(c=>c.id),['tech:one','tech:two']);all.push({id:'tech:future',name:'Future'});assert.equal(radialCommands(all,'tech',true).length,3);assert.equal(radialCommands(all,'tech').length,5);});
+test('dedicated command kind and missing registrations survive configuration round trip',()=>{const c=radialConfig({items:[{action:'plugin-command',command:'tech:removed',label:'保留入口',icon:'workflow'}]});assert.equal(c.items[0].action,'plugin-command');assert.equal(c.items[0].command,'tech:removed');});
