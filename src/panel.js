@@ -33,11 +33,18 @@ export class DetailPanel extends Component{
   bar.createEl('button',{text:'复制草稿'}).onclick=()=>this.win.navigator.clipboard.writeText(this.draft);
   bar.createEl('button',{text:'重试保存'}).onclick=()=>{this.error=null;this.flush();};
   this.statusEl=this.el.createDiv({cls:'tt-save-status',attr:{role:'status','aria-live':'polite'}});this.content=this.el.createDiv({cls:'view-content tt-detail-content'});this.reading=this.content.createDiv({cls:'markdown-reading-view'});this.preview=this.reading.createDiv({cls:'tt-detail-preview markdown-preview-view markdown-rendered'});this.previewSizer=this.preview.createDiv({cls:'markdown-preview-sizer markdown-preview-section'});this.editorHost=this.content.createDiv({cls:'tt-detail-editor'});this.editorHost.hidden=true;this.syncLayout();this.applySourceClasses();
+  this.previewSizer.ondblclick=ev=>this.editFromPreview(ev).catch(e=>this.conflict(e));
   let drag=null;
   this.dragMove=ev=>{if(!drag)return;this.el.classList.add('tt-panel-dragged');this.el.style.left=Math.max(0,Math.min(this.win.innerWidth-this.el.offsetWidth,drag.left+ev.clientX-drag.x))+'px';this.el.style.top=Math.max(0,Math.min(this.win.innerHeight-60,drag.top+ev.clientY-drag.y))+'px';};
   this.dragEnd=()=>drag=null;
   header.onpointerdown=ev=>{if(ev.button||ev.target.closest('button'))return;const r=this.el.getBoundingClientRect();drag={left:r.left,top:r.top,x:ev.clientX,y:ev.clientY};header.setPointerCapture(ev.pointerId);ev.preventDefault();};
   header.onpointermove=this.dragMove;header.onpointerup=this.dragEnd;header.onpointercancel=this.dragEnd;
+ }
+ async editFromPreview(ev){
+  if(this.editing||this.switching||ev.button!==0||ev.ctrlKey||ev.metaKey||ev.altKey||ev.shiftKey)return;
+  const target=ev.target?.nodeType===3?ev.target.parentElement:ev.target;
+  if(!target||!this.previewSizer?.contains(target)||target.closest('a,button,input,textarea,select,label,summary,audio,video,[contenteditable],[role="button"],[role="link"],.internal-embed,[data-href]'))return;
+  ev.preventDefault();ev.stopPropagation();await this.setMode(true);
  }
  status(){if(this.statusEl)this.statusEl.textContent=this.error?'冲突／保存失败：'+this.error:this.writing?'保存中…':this.dirty?'未保存':'已保存';}
  conflict(e){this.error=e.message??String(e);window.clearTimeout(this.timer);this.remember();this.status();}
@@ -46,6 +53,7 @@ export class DetailPanel extends Component{
  async setMode(editing){
   if(this.switching||!this.el)return;const transition=this.switching={},el=this.el;this.modeButton.disabled=true;
   const scroller=this.editing?(this.nativeEditor?.editor?.cm?.scrollDOM??this.editor?.scrollDOM):this.preview;
+  const scrollRatio=scroller?Math.max(0,Math.min(1,scroller.scrollTop/Math.max(1,scroller.scrollHeight-scroller.clientHeight))):0;
   this.modeScroll??={};if(scroller)this.modeScroll[this.editing?'edit':'read']={top:scroller.scrollTop,left:scroller.scrollLeft};
   try{
    this.syncLayout();
@@ -55,7 +63,14 @@ export class DetailPanel extends Component{
    this.syncLayout();this.editing=editing;this.reading.hidden=editing;this.editorHost.hidden=!editing;this.editorHost.removeClass('is-preparing');this.modeButton.textContent=editing?'阅读预览':'实时编辑';
    const target=editing?(this.nativeEditor?.editor?.cm?.scrollDOM??this.editor?.scrollDOM):this.preview;
    if(editing)(this.nativeEditor?.editor??this.editor)?.focus();
-   const saved=this.modeScroll[editing?'edit':'read'];if(target&&saved){target.scrollTop=saved.top;target.scrollLeft=saved.left;}
+   // A newly mounted native iframe measures its document after becoming visible.
+   // Wait for layout, and keep its cursor near the restored viewport so the host
+   // does not immediately scroll back to the original cursor at the document top.
+   await new Promise(resolve=>this.win.requestAnimationFrame(()=>this.win.requestAnimationFrame(resolve)));
+   if(this.el!==el)return;
+   const saved=this.modeScroll[editing?'edit':'read'],cm=this.nativeEditor?.editor?.cm??this.editor;
+   if(editing&&!saved&&scrollRatio>0&&cm?.state?.doc){const line=1+Math.round(scrollRatio*(cm.state.doc.lines-1));cm.dispatch({selection:{anchor:cm.state.doc.line(line).from},scrollIntoView:false});}
+   if(target&&saved){target.scrollTop=saved.top;target.scrollLeft=saved.left;}else if(target)target.scrollTop=scrollRatio*Math.max(0,target.scrollHeight-target.clientHeight);
   }finally{if(this.switching===transition)this.switching=null;if(this.el===el){this.reading.hidden=this.editing;this.editorHost.hidden=!this.editing;this.editorHost.removeClass('is-preparing');this.modeButton.disabled=false;}}
  }
  async prepareMode(editing){

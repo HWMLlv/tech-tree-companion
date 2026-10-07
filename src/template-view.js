@@ -1,6 +1,6 @@
 import {replaceSvg} from './svg-dom.js';
 import {TECH_ICON,iconSVG} from './icons.js';
-import {resizeTemplate,tidyNumber} from './appearance.js';
+import {resizeTemplate,tidyNumber,renderFrame} from './appearance.js';
 import {modulePreset,placePreset} from './module-presets.js';
 import {ItemView,Modal,Notice,Scope} from 'obsidian';
 import {clone,DEFAULT_TEMPLATE,moduleDefaultFontSize,uid,validateTemplate,outsideModules,fields} from './model.js';
@@ -13,6 +13,7 @@ export class TemplateView extends ItemView{
  static openManager(plugin,view=null){if(view?.managerModal)return view.managerModal;const modal=new TemplateManagerModal(plugin,view);if(view)view.managerModal=modal;modal.open();return modal;}
  getViewType(){return TEMPLATE_VIEW;}getDisplayText(){return '科技树模板中心';}getIcon(){return TECH_ICON;}
  async onOpen(){this.contentEl.addClass('tt-template-view');this.build();this.registerDomEvent(this.contentEl,'keydown',ev=>{
+  if(this.cardDrag){this.endCardResize(true);if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();return;}}
   if(ev.target.closest('input,textarea,select'))return;
   if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='z'){ev.preventDefault();ev.stopPropagation();ev.shiftKey?this.redo():this.undo();}
   if(ev.key==='Delete'&&this.selected&&!this.preview){ev.preventDefault();this.removeSelected();}
@@ -42,8 +43,8 @@ export class TemplateView extends ItemView{
   this.board.ondrop=ev=>{ev.preventDefault();const type=ev.dataTransfer.getData('application/x-tech-module');if(this.preview)return;const r=this.board.getBoundingClientRect();const m=this.moduleAt(type,(ev.clientX-r.left)/this.zoom,(ev.clientY-r.top)/this.zoom);this.clearDropPreview();if(m)this.insertModule(m);};
   this.board.onpointerdown=ev=>this.pointerDown(ev);this.board.onpointermove=ev=>this.pointerMove(ev);this.board.onpointerup=()=>this.pointerEnd();this.board.onpointercancel=()=>this.pointerEnd();
   this.cardHandle=this.frame.createEl('button',{cls:'tt-card-resize',attr:{type:'button','data-card-resize':'true','aria-label':'拖动调整卡片宽高；方向键微调'}});replaceSvg(this.cardHandle,'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 12 12 4M8 12h4V8" fill="none" stroke="currentColor" stroke-width="2"/></svg>');
-  this.frame.onpointerdown=ev=>this.startCardResize(ev);this.frame.onpointermove=ev=>this.moveCardResize(ev);this.frame.onpointerup=()=>this.endCardResize();this.frame.onpointercancel=()=>this.endCardResize(true);
-  this.cardHandle.onkeydown=ev=>{const d={ArrowRight:[8,0],ArrowLeft:[-8,0],ArrowDown:[0,8],ArrowUp:[0,-8]}[ev.key];if(!d)return;ev.preventDefault();ev.stopPropagation();this.edit(t=>resizeTemplate(t,Math.max(80,Math.min(2400,t.width+d[0])),Math.max(64,Math.min(2400,t.height+d[1]))));this.drawProperties();};
+  this.frame.onpointerdown=ev=>this.startCardResize(ev);this.frame.onpointermove=ev=>this.moveCardResize(ev);this.frame.onpointerup=ev=>this.endCardResize(false,ev);this.frame.onpointercancel=ev=>{if(ev.pointerId===this.cardDrag?.pointerId)this.endCardResize(true);};this.frame.onlostpointercapture=ev=>{if(ev.pointerId===this.cardDrag?.pointerId)this.endCardResize(true);};
+  this.cardHandle.onkeydown=ev=>{const d={ArrowRight:[8,0],ArrowLeft:[-8,0],ArrowDown:[0,8],ArrowUp:[0,-8]}[ev.key];if(!d)return;ev.preventDefault();ev.stopPropagation();if(this.cardDrag)this.endCardResize(true);this.edit(t=>resizeTemplate(t,Math.max(80,Math.min(2400,t.width+d[0])),Math.max(64,Math.min(2400,t.height+d[1]))));this.drawProperties();};
   middle.createDiv({cls:'tt-editor-help',text:'拖动右下角调整卡片大小 · 模块可拖动和缩放 · Ctrl＋Z 撤销'});
   this.properties=layout.createDiv({cls:'tt-module-properties'});this.paint();this.drawProperties();this.plugin.hintRoot(root);const win=root.ownerDocument.defaultView;this.layoutObserver=new win.ResizeObserver(()=>this.adjustViewport());this.layoutObserver.observe(this.viewport);this.adjustViewport();
  }
@@ -56,12 +57,20 @@ export class TemplateView extends ItemView{
  redo(){if(!this.redoStack.length)return;this.undoStack.push(clone(this.template));this.template=this.redoStack.pop();this.changed();this.drawProperties();}
  previewValues(){const values={};for(const m of fields(this.template))values[m.field]=this.sample==='empty'?'':m.type==='title'?(this.sample==='long'?'低温精馏联合连续气体分离与资源循环利用技术':'低温空分'):m.type==='summary'?(this.sample==='long'?'用于验证长摘要的自动换行和截断显示，原始字段内容不会被截断保存。'.repeat(4):'净化空气 → 氧气／氮气'):m.field==='materials'?'8 份':m.field==='research'?'120':'示例值';return values;}
  paint(){
-  if(!this.board)return;this.cardHandle.hidden=this.preview;this.sizeReadout.textContent=tidyNumber(this.template.width)+' × '+tidyNumber(this.template.height); this.board.style.width=this.template.width*this.zoom+'px';this.board.style.height=this.template.height*this.zoom+'px';this.board.style.backgroundSize=this.template.grid*this.zoom+'px '+this.template.grid*this.zoom+'px';this.board.toggleClass('is-preview',this.preview);
+  if(!this.board)return;if(this.cardDrag?.svg?.isConnected&&this.cardDrag.layer?.isConnected){this.paintCardResize();return;}this.cardHandle.hidden=this.preview;this.paintBoardSize();this.board.style.backgroundSize=this.template.grid*this.zoom+'px '+this.template.grid*this.zoom+'px';this.board.toggleClass('is-preview',this.preview);
   const outside=outsideModules(this.template);
-  try{const rendered=this.plugin.render(this,this.template,this.previewValues());replaceSvg(this.board,rendered.svg);this.message.textContent=(this.dirty?'未保存的模板草稿':'已保存模板')+(rendered.fontMessage?' · '+rendered.fontMessage:'')+(outside.length?' · 超出卡片边界：'+outside.map(m=>m.label||m.id).join('、')+'。请扩大外框或调整模块后保存。':'')+(rendered.overflow.length?' · 文字溢出：'+rendered.overflow.map(id=>this.template.modules.find(m=>m.id===id)?.label||id).join('、'):'');}catch(e){this.board.textContent=e.message;}
+  try{const rendered=this.plugin.render(this,this.template,this.previewValues());replaceSvg(this.board,rendered.svg);this.renderStatus={fontMessage:rendered.fontMessage,overflow:rendered.overflow};this.paintStatus(outside);}catch(e){this.board.textContent=e.message;}
   if(!this.preview)for(const m of this.template.modules){const box=this.board.createDiv({cls:'tt-module-hit'+(m.id===this.selected?' is-selected':''),attr:{'data-module-id':m.id,'aria-label':m.label||labels[m.type]}});Object.assign(box.style,{left:m.x*this.zoom+'px',top:m.y*this.zoom+'px',width:m.w*this.zoom+'px',height:m.h*this.zoom+'px'});if(m.id===this.selected)box.createDiv({cls:'tt-resize-handle',attr:{'data-resize':'true'}});box.classList.toggle('is-outside',outside.includes(m));}
   this.plugin.hintRoot(this.board);
   this.undoButton.disabled=!this.undoStack.length;this.redoButton.disabled=!this.redoStack.length;
+ }
+ paintBoardSize(){this.sizeReadout.textContent=tidyNumber(this.template.width)+' × '+tidyNumber(this.template.height);this.board.style.width=this.template.width*this.zoom+'px';this.board.style.height=this.template.height*this.zoom+'px';}
+ paintStatus(outside){const {fontMessage='',overflow=[]}=this.renderStatus??{};this.message.textContent=(this.dirty?'未保存的模板草稿':'已保存模板')+(fontMessage?' · '+fontMessage:'')+(outside.length?' · 超出卡片边界：'+outside.map(m=>m.label||m.id).join('、')+'。请扩大外框或调整模块后保存。':'')+(overflow.length?' · 文字溢出：'+overflow.map(id=>this.template.modules.find(m=>m.id===id)?.label||id).join('、'):'');}
+ paintCardResize(){
+  const d=this.cardDrag;if(!d?.svg?.isConnected||!d.layer?.isConnected){this.paint();return;}
+  this.paintBoardSize();const t=this.template;d.svg.setAttribute('width',String(t.width));d.svg.setAttribute('height',String(t.height));d.svg.setAttribute('viewBox',`0 0 ${t.width} ${t.height}`);
+  const clean=replaceSvg(d.staging,`<svg xmlns="http://www.w3.org/2000/svg">${renderFrame(t)}</svg>`);d.layer.replaceChildren(...clean.childNodes);
+  const outside=outsideModules(t);for(const box of this.board.querySelectorAll('[data-module-id]'))box.classList.toggle('is-outside',outside.some(m=>m.id===box.dataset.moduleId));this.paintStatus(outside);
  }
  drawLibrary(){
   const root=this.library;root.empty();root.createEl('h3',{text:'模块库'});root.createEl('p',{text:'拖入卡片，或点击添加。'});
@@ -94,9 +103,15 @@ export class TemplateView extends ItemView{
  }
  fitCard(){this.preferredZoom=2;this.zoomMode="fit";this.adjustViewport();}
  centerCard(){this.viewport.scrollLeft=(this.viewport.scrollWidth-this.viewport.clientWidth)/2;this.viewport.scrollTop=(this.viewport.scrollHeight-this.viewport.clientHeight)/2;}
- startCardResize(ev){if(this.preview||ev.button!==0||!ev.target.closest('[data-card-resize]'))return;ev.preventDefault();ev.stopPropagation();const r=this.frame.getBoundingClientRect(),s=this.surface.getBoundingClientRect();this.cardDrag={before:clone(this.template),x:ev.clientX,y:ev.clientY,pointerId:ev.pointerId};this.surface.style.width=s.width+'px';this.surface.style.height=s.height+'px';Object.assign(this.frame.style,{position:'absolute',left:r.left-s.left+'px',top:r.top-s.top+'px'});this.frame.setPointerCapture(ev.pointerId);this.cardHandle.focus();}
- moveCardResize(ev){const d=this.cardDrag;if(!d)return;const snap=n=>Math.round(n/this.template.grid)*this.template.grid,width=Math.max(80,Math.min(2400,snap(d.before.width+(ev.clientX-d.x)/this.zoom))),height=Math.max(64,Math.min(2400,snap(d.before.height+(ev.clientY-d.y)/this.zoom)));this.template=clone(d.before);resizeTemplate(this.template,width,height);this.paint();}
- endCardResize(cancel=false){const d=this.cardDrag;if(!d)return;this.cardDrag=null;if(this.frame.hasPointerCapture(d.pointerId))this.frame.releasePointerCapture(d.pointerId);for(const key of ['position','left','top'])this.frame.style.removeProperty(key);this.surface.style.removeProperty('width');this.surface.style.removeProperty('height');if(cancel)this.template=d.before;else this.remember(d.before);this.paint();this.drawProperties();this.adjustViewport();}
+ startCardResize(ev){if(this.preview||this.cardDrag||ev.button!==0||!ev.target.closest('[data-card-resize]'))return;ev.preventDefault();ev.stopPropagation();const r=this.frame.getBoundingClientRect(),s=this.surface.getBoundingClientRect(),svg=this.board.querySelector(':scope > svg');this.cardDrag={before:clone(this.template),x:ev.clientX,y:ev.clientY,pointerId:ev.pointerId,zoom:this.zoom,svg,layer:svg?.querySelector(':scope > g'),staging:this.board.ownerDocument.createElement('div')};this.surface.style.width=s.width+'px';this.surface.style.height=s.height+'px';Object.assign(this.frame.style,{position:'absolute',left:r.left-s.left+'px',top:r.top-s.top+'px'});this.frame.setPointerCapture(ev.pointerId);this.cardHandle.focus();}
+ cardResizePoint(ev){const d=this.cardDrag;if(!d||ev.pointerId!==d.pointerId)return;d.next={width:Math.max(80,Math.min(2400,d.before.width+(ev.clientX-d.x)/d.zoom)),height:Math.max(64,Math.min(2400,d.before.height+(ev.clientY-d.y)/d.zoom))};}
+ moveCardResize(ev){const d=this.cardDrag;if(!d||ev.pointerId!==d.pointerId)return;this.cardResizePoint(ev);if(d.frame!=null)return;d.frame=this.contentEl.ownerDocument.defaultView.requestAnimationFrame(()=>{d.frame=null;if(this.cardDrag!==d||!this.board?.isConnected)return;const next=d.next;if(next.width===this.template.width&&next.height===this.template.height)return;resizeTemplate(this.template,next.width,next.height);this.paintCardResize();});}
+ endCardResize(cancel=false,ev){
+  const d=this.cardDrag;if(!d||(ev&&ev.pointerId!==d.pointerId))return;const win=this.contentEl.ownerDocument.defaultView;if(d.frame!=null)win.cancelAnimationFrame(d.frame);if(ev?.pointerId===d.pointerId)this.cardResizePoint(ev);
+  if(cancel)this.template=d.before;else if(d.next){const snap=(n,original)=>n===original?original:Math.round(n/d.before.grid)*d.before.grid;resizeTemplate(this.template,Math.max(80,Math.min(2400,snap(d.next.width,d.before.width))),Math.max(64,Math.min(2400,snap(d.next.height,d.before.height))));try{validateTemplate(this.template,{allowOverflow:true});}catch(e){this.template=d.before;cancel=true;this.plugin.error(e);}}
+  this.cardDrag=null;if(this.frame.hasPointerCapture(d.pointerId))this.frame.releasePointerCapture(d.pointerId);for(const key of ['position','left','top'])this.frame.style.removeProperty(key);this.surface.style.removeProperty('width');this.surface.style.removeProperty('height');
+  if(!cancel&&(this.template.width!==d.before.width||this.template.height!==d.before.height))this.remember(d.before);else{this.paint();this.adjustViewport();}this.drawProperties();
+ }
  removeSelected(){this.edit(t=>t.modules=t.modules.filter(m=>m.id!==this.selected));this.selected=null;this.paint();this.drawProperties();}
  pointerDown(ev){if(this.preview||ev.button!==0)return;const box=ev.target.closest('[data-module-id]');this.selected=box?.dataset.moduleId??null;this.propertyTab=this.selected?'module':'appearance';if(!box){this.paint();this.drawProperties();return;}const m=this.template.modules.find(m=>m.id===this.selected);this.drag={before:clone(this.template),module:clone(m),x:ev.clientX,y:ev.clientY,resize:!!ev.target.closest('[data-resize]')};this.board.setPointerCapture(ev.pointerId);this.board.focus();ev.preventDefault();this.paint();this.drawProperties();}
  pointerMove(ev){if(!this.drag)return;const d=this.drag,m=this.template.modules.find(m=>m.id===d.module.id),g=this.template.grid,snap=n=>Math.round(n/g)*g,dx=(ev.clientX-d.x)/this.zoom,dy=(ev.clientY-d.y)/this.zoom;

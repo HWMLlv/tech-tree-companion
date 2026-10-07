@@ -1,32 +1,39 @@
 # Community release and provenance
 
 Repository: https://github.com/HWMLlv/tech-tree-companion
+Version: **0.4.30**. Minimum Obsidian: **1.13.7**, desktop only. Excalidraw **2.25.3 or later** must be installed and enabled separately. Author: HWMLlv. License: MIT. The plugin interface is Chinese.
 
-This local package prepares **0.4.29** with the original ten quick icons restored alongside the independent 30-icon picker. The verified **0.4.27** source and published release are preserved. This delivery does not publish a new GitHub release or establish a new community review result.
+## Changes in this release
 
-## Publish 0.4.29
+- Recalculate complete dashed/dotted repeat cycles for resized rounded borders. Keep gaps at all four square corners rather than wrapping one dash around a corner.
+- Coalesce card-resize pointer moves once per animation frame; redraw only border/background during the gesture. Retain text/icon/module positions, use continuous preview dimensions, snap and validate on release, and record one undo step. Cancel pending work safely on Escape, pointer cancellation, lost capture, or closing the view.
+- Double-click ordinary detail reading text to enter the existing live editor, keeping approximately the same reading position. Interactive controls and modified double-clicks retain their normal behavior. Switching modes alone does not write the linked note.
+- Remove redundant icon-picker hover tooltips while retaining visible labels, accessibility names, the original quick icon buttons, and the complete picker.
 
-1. Upload or commit the complete contents of the source directory to the repository root on `main`, including `.github/workflows/validate.yml`, `.gitignore`, and `.npmrc`. Do not upload `node_modules`, test-host evidence, or the surrounding delivery directory. The manifest, package/lock versions, and `versions.json` are already updated to `0.4.29`.
-2. Wait for the validation workflow to succeed. Create a Git tag named exactly `0.4.29`, without a `v` prefix, at that source commit.
-3. Wait for both `validate` and `attest` to succeed in the tag's **Validate and attest plugin** workflow. Download and unzip its `community-release` artifact.
-4. Create a stable GitHub release from that tag. Upload `main.js`, `manifest.json`, and `styles.css` individually from the artifact. Keep older releases intact. Use `gh attestation verify <file> --repo HWMLlv/tech-tree-companion` to verify downloaded attachments. A local build alone cannot issue GitHub attestations.
-5. Select **Check for new releases** on the existing Obsidian Community entry and inspect its review. Do not create a duplicate entry. Build and attestation results are separate from community acceptance and app-browser availability.
+Existing saved SVG cards require an explicit edit/save or **优化选中节点附件（保留字体设置）** to apply the new border layout. No automatic vault-wide rewrite is performed.
 
-The workflow validates metadata, installs locked dependencies, runs lint/tests, builds the three standard files, and uploads an artifact. Successful trusted `main` or tag builds issue attestations for those exact bytes. Pull requests run read-only validation and do not issue attestations. The workflow does not publish, replace, or delete releases automatically.
+## Release process
 
-## Data access disclosure
+1. Commit the complete source to the correct repository, including .github, .gitignore and .npmrc. Exclude node_modules, dist, local delivery packages, and host evidence.
+2. Wait for the main workflow to pass. Create the exact tag **0.4.30**, without a v prefix, at that commit.
+3. Wait for both validate and attest in the tag workflow to pass. Download the tag build's community-release artifact.
+4. Publish a stable GitHub release with the artifact's main.js, manifest.json and styles.css as individual attachments. Verify their hashes and matching tag/commit provenance. Preserve all older releases.
+5. On the existing Obsidian Community entry, select **Check for new releases** and inspect its review. Do not create a duplicate entry. GitHub validation and provenance do not establish community approval or app-browser availability.
 
-The README's **Vault scanning and clipboard access** section describes existing file enumeration, content/reference checks, scan triggers, local-only processing, attachment recovery safeguards, and the user-triggered Copy draft clipboard write. These capabilities remain present and may remain community recommendations. The new built-in icon picker adds no network or clipboard access.
+The workflow installs locked dependencies, validates metadata, runs lint/tests, builds the three standard files and generates GitHub artifact attestations for trusted main/tag builds. Pull requests run read-only validation and do not issue attestations. The workflow itself does not publish releases.
 
-## Local validation
+## Validation scope
 
-- 205 regression tests passed; JavaScript lint reported zero errors and seven existing warnings.
-- 14 distinct checks passed in an isolated Windows Obsidian **1.13.7** / Excalidraw **2.25.3** vault, covering the original ten quick icons, one-click replacement, popup selection synchronization, cancellation, preservation of other module parameters, and template undo/redo. The previous 0.4.28 host validation separately covered 26 node/editor checks.
-- No temporary vault files were created, and the original plugin settings and template draft were restored. The test vault retains the 0.4.29 installation for inspection; the working vault was not modified.
-- GitHub Actions and artifact attestations for 0.4.29, its official community review, macOS/Linux host integration, and public community-browser installation have not been verified by this local delivery. Mobile is unsupported.
+- Current cumulative local suite: **219 passing, zero failing** tests. Lint: zero errors and seven existing UI sentence-case warnings. Build succeeds.
+- Isolated Windows Obsidian **1.13.7** / Excalidraw **2.25.3** checks for the accumulated work: 22 detail/rounded-border checks, 16 icon-picker tooltip checks, 7 square-border checks covering 168 render variants, and 21 resize/undo/cancellation checks. These are separate focused checks, not a claim of full cross-platform coverage.
+- A fixed host CPU comparison reduced a 200-move programmatic burst from 200 full-card redraws to one border update. This measures callback/render work; it is not end-to-end FPS or a guarantee for every machine.
+- Original isolated-vault settings and drafts were restored; temporary note/drawing/SVG fixtures were removed. The actual working vault was not modified.
+- macOS/Linux host integration and public community-browser installation remain unverified. Mobile is unsupported. Native detail editing depends on private host APIs and may require updates after upstream changes.
 
-The plugin remains desktop-only with minimum Obsidian `1.13.7`. Excalidraw `2.25.3` or later must be installed and enabled separately. Native detail editing depends on private host APIs. The interface is Chinese. Author: HWMLlv. License: MIT.
+## Data access
 
-## 中文操作提示
+The README documents existing local vault enumeration/reference checks and the user-triggered **复制草稿** clipboard write. These capabilities remain present and can remain review recommendations. This release adds no network or clipboard access. Font requests continue to download only the versioned Xiaolai font shards registered by Excalidraw; vault text and paths are not sent to a server.
 
-先更新正确的仓库 `HWMLlv/tech-tree-companion`。上传“源码”目录内部的文件，保留隐藏配置和 `.github`。等待 Actions 成功后，为该提交创建 `0.4.29` 标签；再从标签构建的 `community-release` 下载三个发布附件，创建新 Release。不要覆盖旧版 0.4.27，也不要把本地附件直接当作已有 GitHub 来源证明的文件。
+## 中文提示
+
+拉伸卡片时连续预览，松手后网格对齐；文字、图标和模块位置保持原样。已有卡片需重新保存或运行“优化选中节点附件（保留字体设置）”才能应用新的虚线/点线排布。详情阅读正文可双击进入实时编辑，链接和按钮等保留原操作。更新时保留 data.json、字体缓存和已有卡片附件。

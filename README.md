@@ -19,14 +19,22 @@ No separate `runtime` directory is needed. The font worker, WebAssembly code, an
 ## Use
 
 1. Open an editable Excalidraw drawing and run **新建科技节点** to create a card. Fill its fields, choose a saved template, and optionally link a Markdown note or heading.
-2. Select a card and run **编辑节点** to edit its content, or **打开详情** to read and edit the linked note section. Detail edits are automatically saved. External changes trigger conflict handling; unsaved drafts can be retained and copied.
+2. Select a card and run **编辑节点** to edit its content, or **打开详情** to read and edit the linked note section. Double-click ordinary reading text to enter the existing live editor, retaining approximately the same reading position. Links, buttons, checkboxes, embeds, and modified double-clicks retain their normal behavior. The **实时编辑** button remains available. Detail edits are automatically saved. External changes trigger conflict handling; unsaved drafts can be retained and copied.
 3. Open **模板中心** to edit card layouts and save templates. **管理模板** in settings and the template center provides visual previews, explicit editing, inline rename, copy, default selection, and deletion. Template changes do not automatically rewrite existing cards.
 4. Configure **快捷轮盘**, **节点字体**, and **默认连线** in settings. Existing cards or arrows change only when explicitly updated. **优化选中节点附件（保留字体设置）** rebuilds selected cards using their existing font settings.
 5. Open **资源管理** to inspect attachment references, change card attachment folder/naming, or restore recycled files. Scanning does not delete files. Unreferenced owned attachments are retained for at least seven days before moving to the plugin's recoverable recycle area. After a further thirty days, a separate user-confirmed action can move them to the system trash. Recovery operations are guarded when drawings are open or scans are incomplete. Unknown/legacy attachments are not automatically claimed or deleted.
 
+### Card borders and resizing
+
+Dashed and dotted borders recalculate complete repeat cycles for the current card size. Rounded contours leave a gap at the closing seam; square contours leave gaps at all four corners so a dash does not wrap around a corner into an L shape. Width, color, fill, and hand-drawn styling are retained.
+
+In the template center, dragging the card resize handle updates only the border and background once per animation frame. Text, icons, and module positions remain unchanged. The preview follows continuous dimensions; releasing the pointer snaps to the existing grid, validates the final dimensions, and records one undo step. Escape cancels the resize. Shrinking past a module still displays an overflow warning rather than moving or truncating that module.
+
+Existing SVG cards need an explicit edit/save or **优化选中节点附件（保留字体设置）** to regenerate their borders. There is no automatic vault-wide rewrite.
+
 ### Card icons
 
-The module properties panel retains the original 10 icons for immediate one-click selection. **更多图标** opens the independent 30-icon picker in four groups: common icons, resources/materials, production equipment, and processes/logistics. Its current-icon preview stays synchronized with quick selections and confirmed popup selections, including extended icons. The new resource choices include ore, rock, crystal, ingot, powder, gravel, wood, and gas. Icons use the same outline style as the existing set and require no downloads.
+The module properties panel retains the original 10 icons for immediate one-click selection. **更多图标** opens the independent 30-icon picker in four groups: common icons, resources/materials, production equipment, and processes/logistics. The picker shows category headings and icon names directly without redundant hover tooltips. Its current-icon preview stays synchronized with quick selections and confirmed popup selections, including extended icons. The new resource choices include ore, rock, crystal, ingot, powder, gravel, wood, and gas. Icons use the same outline style as the existing set and require no downloads.
 
 In **新建科技节点** or **编辑节点**, click **更换节点图标**. If the card contains multiple icon modules, choose which one to replace. **使用此图标** updates the editor draft; creating or saving the node applies it to the drawing. Cancel leaves the draft unchanged. Only the selected icon's shape changes: its color, position, size, card fields, links, and other parameters are retained. A saved change uses the drawing's normal undo/redo history.
 

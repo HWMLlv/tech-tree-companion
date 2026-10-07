@@ -1,6 +1,7 @@
 import {Modal} from 'obsidian';
 import {ICONS,ICON_GROUPS,iconSVG} from './icons.js';
 import {replaceSvg} from './svg-dom.js';
+import {prepareHints} from './ui-hints.js';
 
 export class IconPicker extends Modal{
  constructor(app,value,onChoose,{owner,targets=[],color='#1e293b',onClose}={}){super(app);Object.assign(this,{value,onChoose,owner,targets,color,afterClose:onClose});this.target=targets[0];this.selected=this.target?.icon??value;}
@@ -15,6 +16,10 @@ export class IconPicker extends Modal{
    grid.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;const buttons=[...grid.querySelectorAll('button')],index=buttons.indexOf(e.target);if(index<0)return;e.preventDefault();const columns=Math.max(1,grid.ownerDocument.defaultView.getComputedStyle(grid).gridTemplateColumns.split(' ').length),step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-columns,ArrowDown:columns}[e.key];buttons[Math.max(0,Math.min(buttons.length-1,index+step))].focus();};
   }
   this.preview=root.createDiv({cls:'tt-icon-selection',attr:{role:'status','aria-live':'polite'}});const actions=root.createDiv({cls:'tt-icon-actions'});actions.createEl('button',{text:'取消',attr:{type:'button'}}).onclick=()=>this.close();this.confirm=actions.createEl('button',{text:'使用此图标',cls:'mod-cta',attr:{type:'button'}});this.confirm.onclick=()=>this.choose();this.scope.register(['Mod'],'Enter',()=>{this.choose();return false;});this.updateSelection();
+  // Visible category and icon names make popup hints redundant. Preserve their
+  // accessible names without letting the host infer tooltips from aria-label.
+  this.owner?.hints?.get(root.ownerDocument)?.clear();prepareHints(root);
+  for(const el of root.querySelectorAll('[data-tt-hint]'))el.removeAttribute('data-tt-hint');
   this.gallery.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
  }
  updateSelection(){
@@ -23,7 +28,7 @@ export class IconPicker extends Modal{
   this.confirm.disabled=!Object.hasOwn(ICONS,this.selected);
  }
  choose(){if(this.chosen||!Object.hasOwn(ICONS,this.selected)||this.owner?.stopped)return;this.chosen=true;this.onChoose(this.selected,this.target?.id);this.close();}
- onClose(){this.owner?.iconPickers?.delete(this);this.contentEl.empty();this.afterClose?.();}
+ onClose(){this.owner?.hints?.get(this.contentEl.ownerDocument)?.clear();this.owner?.iconPickers?.delete(this);this.contentEl.empty();this.afterClose?.();}
 }
 
 export function iconInput(root,value,onChoose,{app,owner,...options}={}){

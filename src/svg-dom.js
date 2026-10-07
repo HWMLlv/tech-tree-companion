@@ -2,7 +2,7 @@
 // Rebuild an inert XML tree with a small allowlist instead of injecting markup.
 const SVG_NS='http://www.w3.org/2000/svg';
 const tags=new Set(['svg','g','defs','path','rect','circle','ellipse','line','polyline','polygon','text','tspan','metadata']);
-const attributes=new Set(['width','height','viewBox','x','y','x1','y1','x2','y2','cx','cy','r','rx','ry','d','points','transform','preserveAspectRatio','overflow','fill','stroke','color','opacity','fill-opacity','stroke-opacity','stroke-width','stroke-dasharray','stroke-dashoffset','stroke-linecap','stroke-linejoin','fill-rule','font-family','font-size','font-weight','text-anchor','aria-hidden']);
+const attributes=new Set(['width','height','viewBox','x','y','x1','y1','x2','y2','cx','cy','r','rx','ry','d','pathLength','points','transform','preserveAspectRatio','overflow','fill','stroke','color','opacity','fill-opacity','stroke-opacity','stroke-width','stroke-dasharray','stroke-dashoffset','stroke-linecap','stroke-linejoin','fill-rule','font-family','font-size','font-weight','text-anchor','aria-hidden']);
 export function replaceSvg(container,source){
  if(typeof source!=='string'||/<!DOCTYPE|<!ENTITY/i.test(source))throw Error('不支持的 SVG 内容');
  const doc=container.ownerDocument,parsed=new doc.defaultView.DOMParser().parseFromString(source,'image/svg+xml');
