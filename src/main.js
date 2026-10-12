@@ -1,4 +1,7 @@
 import {replaceSvg} from './svg-dom.js';
+import {CanvasNavigation} from './navigation.js';
+import {openConfigTransfer} from './config-ui.js';
+import {openBatch} from './batch-ui.js';
 import {NativeArrowDefaults} from './native-arrow-defaults.js';
 import {Hints} from './ui-hints.js';
 import {RadialMenu} from './radial-menu.js';
@@ -24,6 +27,7 @@ import {FontSubset} from './font-subset.js';
 const pause=ms=>new Promise(r=>window.setTimeout(r,ms));
 export default class TechTreePlugin extends Plugin{
  async onload(){
+  this.stopped=false;
   addIcon(TECH_ICON,TECH_MARK);this.hints=new Map();
   const saved=await this.loadData();this.data={schema:1,templates:[clone(DEFAULT_TEMPLATE)],defaultTemplate:'builtin-tech',drafts:{},...saved};
   this.data.connectionStyle=connectionStyle(this.data.connectionStyle);
@@ -39,6 +43,9 @@ export default class TechTreePlugin extends Plugin{
   this.registerView(TEMPLATE_VIEW,leaf=>new TemplateView(leaf,this));
   this.addSettingTab(new ConnectionSettingTab(this));
   this.addCommand({id:'radial-settings',name:'编辑画布快捷轮盘',callback:()=>openRadialEditor(this)});
+  this.addCommand({id:'config-transfer',name:'配置导入与导出',callback:()=>openConfigTransfer(this)});
+  for(const [id,name,run]of [['search-nodes','搜索与定位节点',nav=>nav.openSearch()],['check-node-links','检查节点文档关联',nav=>nav.openSearch(true)],['toggle-minimap','小地图开关',nav=>nav.toggle()],['navigation-back','返回上个画布视图',nav=>nav.back()]])this.addCommand({id,name,checkCallback:checking=>{const v=this.navigationView(),nav=v&&this.owners.get(v)?.navigation;if(!nav?.valid()||(id==='navigation-back'&&!nav.history.length))return false;if(!checking)run(nav);return true;}});
+  this.addCommand({id:'batch-appearance',name:'批量修改卡片外观',checkCallback:checking=>{const v=this.view();if(!this.selectedTechNodes(v).length)return false;if(!checking)openBatch(this,v);return true;}});
   this.addCommand({id:'font-settings',name:'字体设置',callback:()=>{if(this.modal)return;this.modal=new FontModal(this);this.modal.open();}});
   this.addCommand({id:'refresh-node-fonts',name:'更新选中节点字体',checkCallback:checking=>{const v=this.view();if(!this.selectedTechNodes(v).length)return false;if(!checking)this.refreshNodeFonts(v).catch(e=>this.error(e));return true;}});
   this.addCommand({id:'optimize-node-assets',name:'优化选中节点附件（保留字体设置）',checkCallback:checking=>{const v=this.view();if(!this.selectedTechNodes(v).length)return false;if(!checking)this.refreshNodeFonts(v,true).catch(e=>this.error(e));return true;}});
@@ -50,6 +57,7 @@ export default class TechTreePlugin extends Plugin{
   this.addRibbonIcon(TECH_ICON,'科技树模板中心',()=>this.openTemplates());
   this.addCommand({id:'create-node',name:'新建科技节点',checkCallback:checking=>{const v=this.view();if(!v)return false;if(!checking)this.openNode(v);return true;}});
   this.addCommand({id:'edit-node',name:'编辑节点',checkCallback:checking=>{const v=this.view(),e=this.selected(v);if(!e)return false;if(!checking)this.openNode(v,e);return true;}});
+  this.addCommand({id:'node-icons',name:'更换节点图标',checkCallback:checking=>{const v=this.view(),e=this.selected(v);if(!e?.customData.techTree.template.modules.some(m=>m.type==='icon'))return false;if(!checking&&!this.modal){this.openNode(v,e);this.modal?.openIcons();}return true;}});
   this.addCommand({id:'open-details',name:'打开详情',checkCallback:checking=>{const v=this.view(),e=this.selected(v);if(!e)return false;if(!checking)this.details(v,e).catch(e=>this.error(e));return true;}});
   this.registerEvent(this.app.workspace.on('layout-change',()=>this.scheduleScan()));
   this.registerEvent(this.app.workspace.on('active-leaf-change',()=>this.scheduleScan()));
@@ -62,6 +70,7 @@ export default class TechTreePlugin extends Plugin{
  error(e){console.error('[科技树]',e);new Notice(e.message??String(e));}
  requireExcalidraw(doc){const state=dependencyState(this,doc);if(!state.ready)throw Error(state.message);return state;}
  view(){const v=this.app.workspace.getActiveViewOfType(View);return this.live(v)&&v?.getViewType?.()==='excalidraw'&&v._loaded?v:null;}
+ navigationView(){const v=this.app.workspace.getActiveViewOfType(View);return !this.stopped&&v?.getViewType?.()==='excalidraw'&&v._loaded&&v.file&&v.excalidrawAPI?v:null;}
  live(v){return !this.stopped&&dependencyState(this).ready&&v?.leaf?.view===v&&v.file&&v.excalidrawAPI&&!v.excalidrawAPI.getAppState().viewModeEnabled;}
  // Capture before asynchronous preparation; a live view may already show another file.
  target(v,nodes=[]){
@@ -76,6 +85,11 @@ export default class TechTreePlugin extends Plugin{
  ea(v){return this.requireExcalidraw(v.containerEl.ownerDocument).api.getAPI(v);}
  selected(v){if(!v?.excalidrawAPI)return null;const s=v.excalidrawAPI.getAppState(),es=v.excalidrawAPI.getSceneElements().filter(e=>s.selectedElementIds[e.id]);return es.length===1&&isTech(es[0])&&!es[0].locked?es[0]:null;}
  selectedTechNodes(v){if(!v?.excalidrawAPI)return [];const ids=v.excalidrawAPI.getAppState().selectedElementIds;return v.excalidrawAPI.getSceneElements().filter(e=>ids[e.id]&&isTech(e)&&!e.locked);}
+ async applyNodeTemplates(v,changes,target=this.target(v,changes.map(c=>c.node))){
+  this.checkTarget(v,target);if(this.busy.has(v))throw Error('画布正在保存');if(!changes.length)return;this.busy.add(v);let work;
+  try{work=this.ea(v);for(const {node,template}of changes){const values=node.customData.techTree.values,asset=await this.renderAsset(v,template,values,target),fresh=await this.addAsset(v,work,asset,node.x,node.y,target);this.checkTarget(v,target);const fileId=work.getElement(fresh).fileId;delete work.elementsDict[fresh];work.copyViewElementsToEAforEditing([node]);const e=work.getElement(node.id);e.fileId=fileId;e.customData={...e.customData,techTree:instance(template,values)};}await this.commit(v,work,target);}finally{try{work?.destroy();}finally{this.busy.delete(v);}}
+ }
+ async relinkNode(v,node,link){const target=this.target(v,[node]);if(this.busy.has(v))throw Error('画布正在保存');this.busy.add(v);let work;try{work=this.ea(v);work.copyViewElementsToEAforEditing([node]);work.getElement(node.id).link=link;await this.commit(v,work,target);}finally{try{work?.destroy();}finally{this.busy.delete(v);}}}
  async refreshNodeFonts(v,preserveFont=false){
   if(this.busy.has(v))throw Error('画布正在保存');const nodes=this.selectedTechNodes(v),target=this.target(v,nodes);this.busy.add(v);let work;
   try{work=this.ea(v);for(const node of nodes){
@@ -123,13 +137,14 @@ export default class TechTreePlugin extends Plugin{
   if(this.placement&&(!this.live(this.placement.view)||this.placement.view.file!==this.placement.target.file||this.placement.view.excalidrawAPI!==this.placement.target.api||this.view()!==this.placement.view))this.cancelPlacement();
   for(const [v,o]of this.owners)if(!views.has(v)||v.leaf?.view!==v||o.file!==v.file||o.api!==v.excalidrawAPI){v.removeChild(o);this.owners.delete(v);}
   for(const leaf of leaves){const v=leaf.view,doc=v.containerEl?.ownerDocument;if(doc&&!this.canvasDocuments.has(doc)){this.canvasDocuments.add(doc);this.registerDomEvent(doc,'pointerdown',e=>{if(e.target.tagName?.toLowerCase()!=='canvas')return;const current=this.app.workspace.getLeavesOfType('excalidraw').map(l=>l.view).find(view=>view.containerEl?.contains(e.target));if(!current)return;const owner=this.owners.get(current);if(owner?.api===current.excalidrawAPI&&owner?.file===current.file)return;this.scan();this.owners.get(current)?.radial.down(e);},true);}
-   if(v._loaded&&v.excalidrawAPI){if(!this.owners.has(v))this.attach(v);}else pending=true;
+   if(v._loaded&&v.excalidrawAPI){if(!this.owners.has(v))this.attach(v);else this.owners.get(v).navigation?.schedule();}else pending=true;
   }
   if(pending&&Date.now()<this.scanUntil)this.scanTimer=window.setTimeout(()=>this.scan(),100);
  }
  attach(v){
   const owner=new Component();owner.file=v.file;owner.api=v.excalidrawAPI;owner.targets=new Map();this.owners.set(v,owner);v.addChild(owner);
   owner.radial=new RadialMenu(this,v,owner);owner.arrowDefaults=new NativeArrowDefaults(this,v,owner);
+  owner.navigation=new CanvasNavigation(this,v,owner);
   const doc=v.containerEl.ownerDocument;let down=null;
   const reflect=(elements,state)=>{
    if(this.placement?.view===v){if(v.file!==this.placement.target.file||v.excalidrawAPI!==this.placement.target.api||!elements.some(e=>e.id===this.placement.sourceId)||!state.selectedElementIds[this.placement.sourceId])this.cancelPlacement();else this.placement.paint();}
@@ -139,7 +154,7 @@ export default class TechTreePlugin extends Plugin{
   };
   owner.register(v.excalidrawAPI.onChange(reflect));owner.register(()=>v.containerEl.removeClass('tt-tech-selected'));
   reflect(v.excalidrawAPI.getSceneElements(),v.excalidrawAPI.getAppState());
-  const canvas=ev=>v.containerEl.contains(ev.target)&&ev.target.tagName?.toLowerCase()==='canvas';
+  const canvas=ev=>v.containerEl.contains(ev.target)&&ev.target.tagName?.toLowerCase()==='canvas'&&!ev.target.closest?.('.tt-minimap');
   const point=ev=>{const s=v.excalidrawAPI.getAppState();return {x:(ev.clientX-s.offsetLeft)/s.zoom.value-s.scrollX,y:(ev.clientY-s.offsetTop)/s.zoom.value-s.scrollY};};
   const hit=ev=>[...v.excalidrawAPI.getSceneElements()].reverse().find(e=>isTech(e)&&!e.locked&&hitNode(e,point(ev)));
   owner.registerDomEvent(doc,'pointerdown',ev=>{
@@ -159,7 +174,7 @@ export default class TechTreePlugin extends Plugin{
   owner.registerDomEvent(doc,'keydown',ev=>{
    if(this.placement?.view===v&&ev.key==='Escape'){ev.preventDefault();ev.stopImmediatePropagation();this.cancelPlacement();return;}
    if(!this.live(v)||this.modal||this.busy.has(v)||ev.isComposing||ev.altKey||ev.shiftKey)return;
-   if(!v.containerEl.contains(ev.target)||ev.target.closest?.('input,textarea,[contenteditable="true"],.cm-editor,.tt-panel'))return;
+   if(!v.containerEl.contains(ev.target)||ev.target.closest?.('input,textarea,[contenteditable="true"],.cm-editor,.tt-panel,.tt-minimap'))return;
    const state=v.excalidrawAPI.getAppState(),source=this.selected(v);if(!source||state.editingTextElement||state.activeTool.type!=='selection')return;
    if(ev.key==='Enter'&&!ev.ctrlKey&&!ev.metaKey){ev.preventDefault();ev.stopImmediatePropagation();this.openNode(v,source);return;}
    if(!(ev.ctrlKey||ev.metaKey)||!/^Arrow(Up|Down|Left|Right)$/.test(ev.key))return;

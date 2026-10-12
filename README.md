@@ -40,6 +40,21 @@ In **新建科技节点** or **编辑节点**, click **更换节点图标**. If 
 
 If the selected template has no icon module, the entry stays disabled with an explanation. Add an icon module in **模板中心** first; the picker does not automatically add one or change the card layout. In the template editor, select an icon module and either click a quick icon or use **更多图标** to open the same picker. Template editing retains its existing save and undo behavior; existing cards are not automatically rewritten.
 
+## Navigation, dual-ring menu, and workflows
+
+Available in 0.4.31. See [the Chinese usage guide](USER-GUIDE.zh-CN.md) for entry points and workflow details.
+
+- Search the current drawing by card title, visible fields, template, or linked path; locate a card and return to the previous viewport.
+- Toggle a lightweight minimap with click/drag navigation. Its preference persists across drawings and plugin reloads in the current vault. Geometry and native pan/zoom events refresh it; viewport-only changes reuse its scene bitmap.
+- Check linked documents and headings on demand, then explicitly choose a replacement for a broken link.
+- Preview and apply selected appearance/icon changes to multiple cards in one undoable operation. Card content, geometry, and links are preserved.
+- Export/import reusable templates, module presets, and radial-menu configuration with per-item conflict choices. Radial import is unchecked by default; existing cards are not rewritten.
+- Opt into a separately configurable auxiliary outer ring in radial settings. Both rings use the same three-column drag editor, with separate action libraries, retained drafts when switching rings, and one save for both rings. Open the existing custom wheel, then press Shift (configurable) to switch layers. Primary customization and outside-release cancellation remain unchanged.
+
+The settings overview scales continuously with its content width up to a bounded size. The editor fits the available width and height, keeps properties on the right at normal desktop widths, and uses a stacked layout only in narrow windows. Both runtime ring radii are configurable, with a minimum gap to prevent overlap. Preview scaling does not change runtime radii.
+
+Batch template-field migration, cross-drawing search, and full multi-platform acceptance are not included.
+
 ## Network, privacy, and storage
 
 There are no accounts, payments, advertisements, analytics, client-side telemetry, or external file access in this plugin.

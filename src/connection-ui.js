@@ -6,6 +6,7 @@ import {AssetModal,resourceStats} from './asset-ui.js';
 import {connectionStyle,ARROWHEADS,DEFAULT_CONNECTION_STYLE,validStrokeColor} from './connection-style.js';
 import {fontSettings} from './font-ui.js';
 import {radialSettings} from './radial-editor.js';
+import {openConfigTransfer} from './config-ui.js';
 import {choices,colorControls} from './appearance-ui.js';
 import {nativeLibrary} from './native-runtime.js';
 import {arrowType,withArrowType,previewArrow} from './connection-preview.js';
@@ -46,13 +47,15 @@ export class ConnectionStyleModal extends Modal{
 export class ConnectionSettingTab extends PluginSettingTab{
  constructor(plugin){super(plugin.app,plugin);this.plugin=plugin;}
  display(){
+  this.radialRoot?.ttWheelFit?.destroy();
   if(this.connectionRoot)forms.get(this.connectionRoot)?.();const root=this.containerEl;root.empty();root.addClass('tt-settings-page');
   const pageTitle=root.createEl('p',{cls:'tt-muted',text:'按用途调整轮盘、字体、连线和卡片资源。',attr:{id:'tt-settings-'+crypto.randomUUID()}});
   const dependency=dependencyState(this.plugin);if(!dependency.ready)root.createDiv({cls:'tt-muted',attr:{role:'status'},text:dependency.message});
   const nav=root.createEl('nav',{cls:'tt-settings-nav',attr:{'aria-labelledby':pageTitle.id}});
   const section=label=>{const el=root.createEl('section',{cls:'tt-settings-section'});const b=nav.createEl('button',{text:label,attr:{type:'button'}});b.onclick=()=>{el.style.scrollMarginTop=(nav.offsetHeight+parseFloat(root.ownerDocument.defaultView.getComputedStyle(root).paddingTop)+8)+'px';el.scrollIntoView({block:'start'});const heading=el.querySelector('.setting-item-heading .setting-item-name');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}};return el;};
-  const radial=section('快捷轮盘');radialSettings(radial,this.plugin);
+  const radial=this.radialRoot=section('快捷轮盘');radialSettings(radial,this.plugin);
   const font=section('节点字体');fontSettings(font,this.plugin);
+  const configs=section('配置分享');new Setting(configs).setName('配置导入与导出').setHeading();new Setting(configs).setName('模板、模块与轮盘').setDesc('导入前预览并处理重名；已有卡片保持原样。').addButton(b=>b.setButtonText('导入／导出配置').onClick(()=>openConfigTransfer(this.plugin)));
   this.connectionRoot=section('默认连线');form(this.connectionRoot,this.plugin);
   const templates=section('卡片模板');new Setting(templates).setName('卡片模板管理').setHeading();const templateInfo=new Setting(templates).setName('已保存的卡片模板');const describe=()=>templateInfo.setDesc('共 '+this.plugin.templates().length+' 个模板 · 默认：'+this.plugin.defaultTemplate().name);describe();templateInfo.addButton(b=>b.setButtonText('管理模板').onClick(()=>{const modal=TemplateView.openManager(this.plugin);modal.onClosed=()=>{if(templates.isConnected)describe();};}));
   const assets=section('资源管理');new Setting(assets).setName('资源管理').setHeading();const summary=assets.createDiv(),status=assets.createDiv({cls:'tt-muted',attr:{role:'status'}}),token=this.summaryToken={};
@@ -62,6 +65,6 @@ export class ConnectionSettingTab extends PluginSettingTab{
 
  }
 
- hide(){this.summaryToken=null;if(this.connectionRoot)forms.get(this.connectionRoot)?.();}
+ hide(){this.radialRoot?.ttWheelFit?.destroy();this.summaryToken=null;if(this.connectionRoot)forms.get(this.connectionRoot)?.();}
 }
 

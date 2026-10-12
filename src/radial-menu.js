@@ -1,5 +1,5 @@
 import {setIcon} from 'obsidian';
-import {radialConfig,isCommandAction,bindingMatches,wheelLayout,wheelHit,sectorAngles,sectorPath} from './radial-model.js';
+import {radialConfig,isCommandAction,bindingMatches,wheelLayout,wheelHit,sectorAngles,sectorPath,auxiliaryKeyConflict,auxiliaryItems,auxiliaryLayout} from './radial-model.js';
 export function drawWheel(root,items,{r=120,inner=44,disabled=()=>false}={}){
  root.classList.add('tt-wheel');root.style.width=root.style.height=2*r+'px';
  const doc=root.ownerDocument,svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox',`${-r} ${-r} ${2*r} ${2*r}`);root.append(svg);
@@ -26,7 +26,7 @@ export class RadialMenu{
  valid(){const g=this.gesture;return g&&this.p.view()===this.v&&this.p.live(this.v)&&this.v.file===g.target.file&&this.v.excalidrawAPI===g.target.api&&!this.p.modal;}
  down(e){
   this.cancel();this.consumeUntil=0;const p=this.p,v=this.v,c=radialConfig(p.data.radial);
-  if(!c.enabled||!c.items.length||p.view()!==v||p.modal||p.busy.has(v)||!v.containerEl.contains(e.target)||e.target.tagName?.toLowerCase()!=='canvas')return;
+  if(!c.enabled||!c.items.length||p.view()!==v||p.modal||p.busy.has(v)||!v.containerEl.contains(e.target)||e.target.tagName?.toLowerCase()!=='canvas'||e.target.closest?.('.tt-minimap'))return;
   if(c.trigger==='keyboard')return;
   if(c.trigger==='mouse'?!bindingMatches(e,c.binding):e.button!==(c.trigger==='middle'?1:2)||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey!==(c.trigger==='alt-right'))return;
   if(e.button>=3){e.preventDefault();e.stopImmediatePropagation();this.sideUntil=Infinity;}
@@ -42,42 +42,52 @@ export class RadialMenu{
  open(){const g=this.gesture;g.layout=wheelLayout(g.point,this.bounds(),g.config.radius,g.config.inner);if(!g.layout){this.cancel();return;}g.node=this.p.selected(this.v);g.target=this.p.target(this.v,g.node?[g.node]:[]);this.consumeUntil=Infinity;
   const root=this.doc.createElement('div');root.className='tt-wheel-runtime';root.setAttribute('role','status');root.setAttribute('aria-label','快捷轮盘，移动选择，中心取消');this.doc.body.append(root);this.root=root;Object.assign(root.style,{left:g.layout.x-g.layout.r+'px',top:g.layout.y-g.layout.r+'px'});
   g.cells=drawWheel(root,g.config.items,{r:g.layout.r,inner:g.layout.inner,disabled:item=>!available(this.p,this.v,item)});
+  if(g.config.auxiliaryEnabled&&!auxiliaryKeyConflict(g.config)){const hint=this.doc.createElement('span');hint.className='tt-wheel-center';hint.textContent=g.config.auxiliaryKey+'\n辅助层';root.append(hint);}
  }
- move(e){this.cursor=this.v.containerEl.contains(e.target)&&e.target.tagName?.toLowerCase()==='canvas'?{x:e.clientX,y:e.clientY}:null;const g=this.gesture;if(!g||(!g.keyboard&&g.pointerId!==e.pointerId))return;if(!this.valid()){this.cancel();return;}
+ layer(){const g=this.gesture;return g?.auxiliary??{layout:g?.layout,items:g?.config.items,cells:g?.cells};}
+ toggleAuxiliary(){const g=this.gesture;if(!g||!this.root)return;
+  if(g.auxiliary){g.auxiliary.root.remove();g.auxiliary=null;this.root.classList.remove('tt-wheel-muted');}
+  else{if(!g.config.auxiliaryItems?.length)return;const layout=auxiliaryLayout(g.layout,this.bounds(),g.config.auxiliaryRadius);if(!layout){const hint=this.root.querySelector('.tt-wheel-center');if(hint)hint.textContent='空间不足\n请在画布中央打开';return;}
+   const state=this.v.excalidrawAPI.getAppState(),selected=this.v.excalidrawAPI.getSceneElements().filter(e=>state.selectedElementIds[e.id]&&!e.isDeleted),items=auxiliaryItems(this.p.manifest.id,selected,g.config.auxiliaryItems),root=this.doc.createElement('div');root.className='tt-wheel-runtime tt-wheel-auxiliary';this.doc.body.append(root);Object.assign(root.style,{left:layout.x-layout.r+'px',top:layout.y-layout.r+'px'});const cells=drawWheel(root,items,{r:layout.r,inner:layout.inner,disabled:item=>!available(this.p,this.v,item)});g.auxiliary={layout,items,cells,root,selection:selected.map(e=>e.id).sort().join('|')};g.target=this.p.target(this.v,selected.filter(e=>!e.locked));this.root.classList.add('tt-wheel-muted');
+  }g.selected=-1;g.armed=false;g.cells.forEach(cell=>{cell.path.classList.remove('is-active');cell.label.classList.remove('is-active');});
+ }
+ move(e){this.cursor=this.v.containerEl.contains(e.target)&&e.target.tagName?.toLowerCase()==='canvas'&&!e.target.closest?.('.tt-minimap')?{x:e.clientX,y:e.clientY}:null;const g=this.gesture;if(!g||(!g.keyboard&&g.pointerId!==e.pointerId))return;if(!this.valid()){this.cancel();return;}
   const point={x:e.clientX,y:e.clientY};if(!this.root){if(!g.keyboard&&Math.hypot(point.x-g.point.x,point.y-g.point.y)>8)this.cancel();return;}
   e.preventDefault();e.stopImmediatePropagation();g.last=point;
-  if(Math.hypot(point.x-g.point.x,point.y-g.point.y)<6&&!g.armed)return;g.armed=true;const index=wheelHit(point,g.layout,g.config.items.length);g.selected=index>=0&&available(this.p,this.v,g.config.items[index])?index:-1;
-  g.cells.forEach((cell,i)=>{cell.path.classList.toggle('is-active',i===g.selected);cell.label.classList.toggle('is-active',i===g.selected);});
+  if(Math.hypot(point.x-g.point.x,point.y-g.point.y)<6&&!g.armed)return;g.armed=true;const layer=this.layer(),index=wheelHit(point,layer.layout,layer.items.length);g.selected=index>=0&&available(this.p,this.v,layer.items[index])?index:-1;
+  layer.cells.forEach((cell,i)=>{cell.path.classList.toggle('is-active',i===g.selected);cell.label.classList.toggle('is-active',i===g.selected);});
  }
  up(e){const g=this.gesture;if(!g||g.keyboard||g.pointerId!==e.pointerId||e.button!==g.button)return;if(e.button>=3){e.preventDefault();e.stopImmediatePropagation();this.sideUntil=Date.now()+1000;}
-  const open=!!this.root,index=g.armed?wheelHit({x:e.clientX,y:e.clientY},g.layout,g.config.items.length):-1,item=open&&index>=0?g.config.items[index]:null,valid=this.valid();this.cancel();if(!open)return;this.consumeUntil=Date.now()+1000;
+  const open=!!this.root,layer=this.layer(),index=g.armed?wheelHit({x:e.clientX,y:e.clientY},layer.layout,layer.items.length):-1,item=open&&index>=0?layer.items[index]:null,valid=this.valid();this.cancel();if(!open)return;this.consumeUntil=Date.now()+1000;
   // Native pointerup must finish its own gesture. Dispatch only after its cleanup.
   if(valid&&item&&available(this.p,this.v,item))this.win.setTimeout(()=>this.execute(item,g).catch(err=>this.p.error(err)),0);
  }
  keyDown(e){
   const g=this.gesture;
   if(g&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();this.cancel();return;}
+  if(g&&this.root&&g.config.auxiliaryEnabled&&!auxiliaryKeyConflict(g.config)&&e.key===g.config.auxiliaryKey){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)this.toggleAuxiliary();return;}
   if(g?.keyboard){
    if(e.code===g.code){e.preventDefault();e.stopImmediatePropagation();return;}
-   if(!this.root)return;const count=g.config.items.length;let index=null;
+   if(!this.root)return;const layer=this.layer(),count=layer.items.length;let index=null;
    if(/^Arrow(Up|Right|Down|Left)$/.test(e.key))index=Math.round(({ArrowUp:0,ArrowRight:.25,ArrowDown:.5,ArrowLeft:.75})[e.key]*count)%count;
    else if(e.key==='Tab')index=(g.selected+(e.shiftKey?-1:1)+count)%count;
    else if(/^[1-8]$/.test(e.key))index=Number(e.key)-1;
-   if(index!==null){e.preventDefault();e.stopImmediatePropagation();g.armed=true;g.selected=index<count&&available(this.p,this.v,g.config.items[index])?index:-1;g.cells.forEach((cell,i)=>{cell.path.classList.toggle('is-active',i===g.selected);cell.label.classList.toggle('is-active',i===g.selected);});}return;
+   if(index!==null){e.preventDefault();e.stopImmediatePropagation();g.armed=true;g.selected=index<count&&available(this.p,this.v,layer.items[index])?index:-1;layer.cells.forEach((cell,i)=>{cell.path.classList.toggle('is-active',i===g.selected);cell.label.classList.toggle('is-active',i===g.selected);});}return;
   }
   if(this.heldCode===e.code){e.preventDefault();e.stopImmediatePropagation();return;}
   const c=radialConfig(this.p.data.radial),v=this.v,s=v.excalidrawAPI.getAppState();
-  if(c.trigger!=='keyboard'||!c.enabled||!c.items.length||e.repeat||e.isComposing||this.p.view()!==v||this.p.modal||this.p.busy.has(v)||s.editingTextElement||s.editingLinearElement||e.target.closest?.('input,textarea,select,[contenteditable="true"],.cm-editor'))return;
+  if(c.trigger!=='keyboard'||!c.enabled||!c.items.length||e.repeat||e.isComposing||this.p.view()!==v||this.p.modal||this.p.busy.has(v)||s.editingTextElement||s.editingLinearElement||e.target.closest?.('input,textarea,select,[contenteditable="true"],.cm-editor,.tt-minimap'))return;
   if(e.target!==this.doc.body&&!v.containerEl.contains(e.target))return;
   if(!bindingMatches(e,c.binding,true))return;e.preventDefault();e.stopImmediatePropagation();this.heldCode=e.code;
   const b=this.bounds(),point=this.cursor??{x:(b.left+b.right)/2,y:(b.top+b.bottom)/2};this.begin(point,c,{keyboard:true,code:e.code});
  }
  keyUp(e){
   if(e.code!==this.heldCode)return;e.preventDefault();e.stopImmediatePropagation();this.heldCode=null;
-  const g=this.gesture;if(!g?.keyboard)return;const item=this.root&&g.armed&&g.selected>=0?g.config.items[g.selected]:null,valid=this.valid();this.cancel();
+  const g=this.gesture;if(!g?.keyboard)return;const item=this.root&&g.armed&&g.selected>=0?this.layer().items[g.selected]:null,valid=this.valid();this.cancel();
   if(item&&valid)this.win.setTimeout(()=>this.execute(item,g).catch(err=>this.p.error(err)),0);
  }
  async execute(item,g){const p=this.p,v=this.v;if(p.view()!==v||!available(p,v,item))return;
+  if(g.auxiliary){const state=v.excalidrawAPI.getAppState(),selection=v.excalidrawAPI.getSceneElements().filter(e=>state.selectedElementIds[e.id]&&!e.isDeleted).map(e=>e.id).sort().join('|');if(selection!==g.auxiliary.selection)return;}
   if(['edit','details'].includes(item.action)&&(!g.node||p.selected(v)?.id!==g.node.id))return;
   p.checkTarget(v,g.target);
   if(item.action.startsWith('tool:'))v.excalidrawAPI.setActiveTool({type:item.action.slice(5)});
@@ -87,5 +97,5 @@ export class RadialMenu{
   else if(item.action==='templates')await p.openTemplates();
   else if(isCommandAction(item.action))p.app.commands.executeCommandById(item.command);
  }
- cancel(){this.win.clearTimeout(this.timer);if(this.root)this.consumeUntil=Infinity;this.root?.remove();this.root=null;this.gesture=null;}
+ cancel(){this.win.clearTimeout(this.timer);this.gesture?.auxiliary?.root.remove();if(this.root)this.consumeUntil=Infinity;this.root?.remove();this.root=null;this.gesture=null;}
 }
