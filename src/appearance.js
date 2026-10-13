@@ -1,9 +1,10 @@
+import {tr} from './i18n.js';
 import rough from 'roughjs/bundled/rough.cjs.js';
 export const DEFAULT_APPEARANCE={strokeWidth:2,strokeStyle:'solid',roughness:0,corner:'round',opacity:100,textOpacity:100,fillStyle:'solid'};
 export const appearance=t=>({...DEFAULT_APPEARANCE,...t.appearance});
 export const isColor=c=>c==='transparent'||/^#[0-9a-f]{6}$/i.test(c);
 export const tidyNumber=n=>Math.round(n*100)/100;
-export function validateAppearance(t){const a=appearance(t);if(![0,1,2,4,6].includes(a.strokeWidth)||!['solid','dashed','dotted'].includes(a.strokeStyle)||![0,1,2].includes(a.roughness)||!['round','square'].includes(a.corner)||![a.opacity,a.textOpacity].every(n=>Number.isFinite(n)&&n>=0&&n<=100)||!['solid','hachure','cross-hatch'].includes(a.fillStyle))throw Error('节点外观设置无效');return a;}
+export function validateAppearance(t){const a=appearance(t);if(![0,1,2,4,6].includes(a.strokeWidth)||!['solid','dashed','dotted'].includes(a.strokeStyle)||![0,1,2].includes(a.roughness)||!['round','square'].includes(a.corner)||![a.opacity,a.textOpacity].every(n=>Number.isFinite(n)&&n>=0&&n<=100)||!['solid','hachure','cross-hatch'].includes(a.fillStyle))throw Error(tr('节点外观设置无效'));return a;}
 export const fillMetrics=a=>({gap:Math.max(16,a.strokeWidth*4)*(a.fillStyle==='cross-hatch'?1.25:1),weight:Math.max(1.5,a.strokeWidth/2),roughness:a.roughness*.7});
 const generator=rough.generator();
 const seed=id=>{let h=17;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return h%2147483646+1;};

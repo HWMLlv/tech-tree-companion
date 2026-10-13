@@ -1,31 +1,31 @@
 ## 中文
 
-本版集中更新画布导航、双层快捷轮盘和配置工作流。
+本版加入中英文界面，重新整理项目介绍，并改进轮盘编辑中的重复功能提示和布局稳定性。
 
-- **双层轮盘**：保留原有自定义内环，新增可选辅助外环。统一编辑器内可切换两环、保留草稿、移动适用功能，一次保存；支持撤销与重做。内外环半径均可配置。
-- **自适应预览**：设置页轮盘随内容区宽度连续缩放；编辑器按可用宽高调整，常规桌面尺寸下区块设置位于右侧，避免无意义的轮盘滚动。
-- **节点搜索与导航**：搜索当前绘图中的节点并定位；搜索跳转、小地图导航及普通平移／缩放可返回上个画布视图，与“返回上一页面”区分。
-- **持续小地图**：开关状态在同一库的绘图之间和插件重启后保留；响应图形、平移与缩放变化，支持点击和拖动导航。
-- **批量外观与关联检查**：预览后批量应用所选外观或图标，合为一次可撤销操作；检查文档／章节失效并手动重新关联。
-- **配置分享**：导入／导出模板、模块预设和轮盘，导入前预览并选择冲突处理方式；默认不覆盖轮盘，也不会自动改写已有卡片。
+- **界面语言**：设置顶部可选“跟随 Obsidian / 中文 / English”。默认跟随宿主，语言偏好保存后重载仍保留；切换后重新打开已有编辑窗口即可更新显示。
+- **保留你的内容**：语言切换不改写卡片正文、笔记、已保存模板或自定义轮盘名称。英文新模板使用简短按钮文案；轮盘名称可保存至 48 个字符。
+- **轮盘功能去重与定位**：已加入功能只置灰，不增加文字后缀；重复点击或拖动尝试会选中已有区块，图标轻弹一次。取消闪烁和多余文字框，减少动态效果时只选中。
+- **命令分类**：已安装命令列表排除本插件命令，避免两个入口重复；模板中心统一归入外环添加区，保留已有自定义内环配置。
+- **稳定编辑布局**：属性栏与编辑主体预留滚动条位置，切换长命令时轮盘和列宽保持稳定。
+- **双语项目介绍**：中文 README 默认展示，独立 English 页面可通过顶部链接切换，两版均配有真实界面截图；隐私与本地存储说明也分为两版。
 
-更新时保留 `data.json`、字体缓存及现有卡片附件。辅助外环默认关闭，原轮盘内容和顺序不会被自动迁移。仍为桌面插件，需要 Obsidian 1.13.7+ 与 Excalidraw 2.25.3+。
+更新时保留 `data.json`、字体缓存和现有卡片附件。旧自定义名称不会自动翻译。仍为桌面插件，需要 Obsidian 1.13.7+ 和 Excalidraw 2.25.3+。
 
 ## English
 
-This release adds drawing navigation, an optional auxiliary radial-menu layer, and reusable configuration workflows.
+This release adds Chinese and English interface languages, refreshes the project introduction, and improves duplicate-action feedback and layout stability in the wheel editor.
 
-- Edit both rings in one dialog with retained drafts, cross-ring transfers for supported actions, undo/redo, and a single save. Existing primary customization is preserved; both radii are configurable.
-- Fit the settings overview to its content width and the editor to its available width and height, keeping properties on the right at normal desktop sizes.
-- Search and locate nodes in the current drawing, and return after navigation or ordinary pan/zoom gestures.
-- Keep the minimap enabled across drawings and plugin reloads in the same vault, with scene and viewport updates plus click/drag navigation.
-- Preview batch appearance/icon edits in one undoable operation; inspect broken note/heading links and choose replacements manually.
-- Import/export templates, module presets, and radial settings with previews and conflict choices. Radial import is off by default; existing cards are not rewritten.
+- Choose **Follow Obsidian / Chinese / English** at the top of plugin settings. The preference survives reloads. Reopen existing editor windows after switching.
+- Saved cards, notes, templates, and custom wheel names remain unchanged. New English templates use a compact button label; wheel names now retain up to 48 characters.
+- Already-added actions appear dimmed without extra label text. Clicking or attempting to drag one selects its existing segment with a single gentle icon bounce. Flashing and the redundant text frame are removed; reduced-motion preferences use selection alone.
+- Other-command lists exclude this plugin's commands. Template center belongs to the outer-ring action library; existing custom inner-ring placements remain intact.
+- Reserved scrollbar space keeps wheel geometry and column widths stable when switching to longer command settings.
+- Chinese is the default project page, with a separate English README and language links. Both pages include actual interface screenshots and localized privacy documentation.
 
-Retain `data.json`, font caches, and card attachments when upgrading. Desktop only; Obsidian 1.13.7+ and Excalidraw 2.25.3+ are required. The interface remains Chinese.
+Retain `data.json`, font caches, and existing card attachments when upgrading. Saved custom names are not automatically translated. Desktop only; requires Obsidian 1.13.7+ and Excalidraw 2.25.3+.
 
 ## Validation
 
-261 automated tests pass; lint has zero errors and six existing warnings. Focused Windows Obsidian 1.13.7 / Excalidraw 2.25.3 checks covered the preceding local revisions, including dual-ring editing, minimap lifecycle, navigation, scaled native drag/drop, and both editor entry points. The final width-fit correction passed 11 targeted host checks. This is not full cross-platform or mobile acceptance.
+271 automated tests and 47 focused Windows host checks passed on Obsidian 1.13.7 / Excalidraw 2.25.3. Lint reports zero errors and two recommendations. macOS, Linux, and mobile acceptance are not established.
 
-Release attachments are the exact three files from the successful version-tag workflow, with matching GitHub artifact attestations. Build provenance does not establish Obsidian Community approval.
+Release attachments come from the successful version-tag workflow and have matching GitHub artifact attestations. Build provenance does not establish Obsidian Community approval.

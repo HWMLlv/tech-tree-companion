@@ -1,3 +1,4 @@
+import {tr} from './i18n.js';
 import {setIcon} from 'obsidian';
 import {radialConfig,isCommandAction,bindingMatches,wheelLayout,wheelHit,sectorAngles,sectorPath,auxiliaryKeyConflict,auxiliaryItems,auxiliaryLayout} from './radial-model.js';
 export function drawWheel(root,items,{r=120,inner=44,disabled=()=>false}={}){
@@ -40,14 +41,14 @@ export class RadialMenu{
   for(const el of this.v.containerEl.querySelectorAll('.App-menu_top__left,.sidebar')){const r=el.getBoundingClientRect();if(r.width>30&&r.height>100){if(r.left<=result.left+40)result.left=Math.max(result.left,r.right+8);else if(r.right>=result.right-40)result.right=Math.min(result.right,r.left-8);}}return result;
  }
  open(){const g=this.gesture;g.layout=wheelLayout(g.point,this.bounds(),g.config.radius,g.config.inner);if(!g.layout){this.cancel();return;}g.node=this.p.selected(this.v);g.target=this.p.target(this.v,g.node?[g.node]:[]);this.consumeUntil=Infinity;
-  const root=this.doc.createElement('div');root.className='tt-wheel-runtime';root.setAttribute('role','status');root.setAttribute('aria-label','快捷轮盘，移动选择，中心取消');this.doc.body.append(root);this.root=root;Object.assign(root.style,{left:g.layout.x-g.layout.r+'px',top:g.layout.y-g.layout.r+'px'});
+  const root=this.doc.createElement('div');root.className='tt-wheel-runtime';root.setAttribute('role','status');root.setAttribute('aria-label',tr('快捷轮盘，移动选择，中心取消'));this.doc.body.append(root);this.root=root;Object.assign(root.style,{left:g.layout.x-g.layout.r+'px',top:g.layout.y-g.layout.r+'px'});
   g.cells=drawWheel(root,g.config.items,{r:g.layout.r,inner:g.layout.inner,disabled:item=>!available(this.p,this.v,item)});
-  if(g.config.auxiliaryEnabled&&!auxiliaryKeyConflict(g.config)){const hint=this.doc.createElement('span');hint.className='tt-wheel-center';hint.textContent=g.config.auxiliaryKey+'\n辅助层';root.append(hint);}
+  if(g.config.auxiliaryEnabled&&!auxiliaryKeyConflict(g.config)){const hint=this.doc.createElement('span');hint.className='tt-wheel-center';hint.textContent=g.config.auxiliaryKey+tr('\n辅助层');root.append(hint);}
  }
  layer(){const g=this.gesture;return g?.auxiliary??{layout:g?.layout,items:g?.config.items,cells:g?.cells};}
  toggleAuxiliary(){const g=this.gesture;if(!g||!this.root)return;
   if(g.auxiliary){g.auxiliary.root.remove();g.auxiliary=null;this.root.classList.remove('tt-wheel-muted');}
-  else{if(!g.config.auxiliaryItems?.length)return;const layout=auxiliaryLayout(g.layout,this.bounds(),g.config.auxiliaryRadius);if(!layout){const hint=this.root.querySelector('.tt-wheel-center');if(hint)hint.textContent='空间不足\n请在画布中央打开';return;}
+  else{if(!g.config.auxiliaryItems?.length)return;const layout=auxiliaryLayout(g.layout,this.bounds(),g.config.auxiliaryRadius);if(!layout){const hint=this.root.querySelector('.tt-wheel-center');if(hint)hint.textContent=tr('空间不足\n请在画布中央打开');return;}
    const state=this.v.excalidrawAPI.getAppState(),selected=this.v.excalidrawAPI.getSceneElements().filter(e=>state.selectedElementIds[e.id]&&!e.isDeleted),items=auxiliaryItems(this.p.manifest.id,selected,g.config.auxiliaryItems),root=this.doc.createElement('div');root.className='tt-wheel-runtime tt-wheel-auxiliary';this.doc.body.append(root);Object.assign(root.style,{left:layout.x-layout.r+'px',top:layout.y-layout.r+'px'});const cells=drawWheel(root,items,{r:layout.r,inner:layout.inner,disabled:item=>!available(this.p,this.v,item)});g.auxiliary={layout,items,cells,root,selection:selected.map(e=>e.id).sort().join('|')};g.target=this.p.target(this.v,selected.filter(e=>!e.locked));this.root.classList.add('tt-wheel-muted');
   }g.selected=-1;g.armed=false;g.cells.forEach(cell=>{cell.path.classList.remove('is-active');cell.label.classList.remove('is-active');});
  }

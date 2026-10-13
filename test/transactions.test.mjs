@@ -1,3 +1,4 @@
+import {tr} from '../src/i18n.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -6,7 +7,7 @@ import {DEFAULT_TEMPLATE,clone,moduleText,isTech,instance,svgData} from '../src/
 import {snapshotFont,effectiveFont} from '../src/fonts.js';
 import {dependencyState,EXCALIDRAW_ID} from '../src/dependency.js';
 const source=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export default class TechTreePlugin extends Plugin','globalThis.PluginClass=class TechTreePlugin extends Plugin');
-const context={Plugin:class{},Notice:class{},window:{setTimeout,clearTimeout},structuredClone,snapshotFont,effectiveFont,moduleText,isTech,instance,svgData,dependencyState};vm.createContext(context);vm.runInContext(source,context);
+const context={Plugin:class{},Notice:class{},window:{setTimeout,clearTimeout},structuredClone,snapshotFont,effectiveFont,moduleText,isTech,instance,svgData,dependencyState};vm.createContext(Object.assign(context,{tr}));vm.runInContext(source,context);
 const tick=()=>new Promise(r=>setTimeout(r,0));
 function fixture(){
  const p=new context.PluginClass(),t=clone(DEFAULT_TEMPLATE);p.busy=new Set();p.data={fontFamily:'Microsoft YaHei'};p.app={plugins:{plugins:{[EXCALIDRAW_ID]:{manifest:{version:'2.28.0'},isExcalidrawFile:()=>false}}}};

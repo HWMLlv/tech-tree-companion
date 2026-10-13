@@ -1,3 +1,4 @@
+import {tr} from './i18n.js';
 import {ICONS,iconBody} from './icons.js';
 import {effectiveFont,fontStack,validFont} from './fonts.js';
 import {isColor,validateAppearance,renderFrame} from './appearance.js';
@@ -9,8 +10,8 @@ export const clone=x=>structuredClone(x);
 export const uid=()=>crypto.randomUUID();
 export function replaceModuleIcon(template,id,key){
  const module=template.modules.find(m=>m.id===id);
- if(module?.type!=='icon')throw Error('请选择已有的图标模块');
- if(!Object.hasOwn(ICONS,key))throw Error('请选择支持的图标');
+ if(module?.type!=='icon')throw Error(tr('请选择已有的图标模块'));
+ if(!Object.hasOwn(ICONS,key))throw Error(tr('请选择支持的图标'));
  module.icon=key;
 }
 export const DEFAULT_TEMPLATE={id:'builtin-tech',version:1,name:'基础科技卡片',width:352,height:192,grid:8,background:'#eff6ff',border:'#475569',modules:[
@@ -24,22 +25,22 @@ const colors=/^#[0-9a-f]{6}$/i;
 const number=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
 export const outsideModules=t=>t.modules.filter(m=>m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7);
 export function validateTemplate(t,{allowOverflow=false}={}){
- if(!t||!t.id||!t.name?.trim()||!Number.isInteger(t.version)||t.version<1)throw Error('模板名称或版本无效');
- if(t.fontFamily&&!validFont(t.fontFamily))throw Error('字体名称无效，请输入本机字体名称');
- if(!number(t.width,80,2400)||!number(t.height,64,2400)||!number(t.grid,1,64)||!isColor(t.background)||!isColor(t.border))throw Error('模板尺寸或颜色无效');
+ if(!t||!t.id||!t.name?.trim()||!Number.isInteger(t.version)||t.version<1)throw Error(tr('模板名称或版本无效'));
+ if(t.fontFamily&&!validFont(t.fontFamily))throw Error(tr('字体名称无效，请输入本机字体名称'));
+ if(!number(t.width,80,2400)||!number(t.height,64,2400)||!number(t.grid,1,64)||!isColor(t.background)||!isColor(t.border))throw Error(tr('模板尺寸或颜色无效'));
  validateAppearance(t);
- if(!Array.isArray(t.modules)||t.modules.length>100)throw Error('模板最多包含 100 个模块');
+ if(!Array.isArray(t.modules)||t.modules.length>100)throw Error(tr('模板最多包含 100 个模块'));
  const ids=new Set();
  for(const m of t.modules){
-  if(!m.id||ids.has(m.id))throw Error('模块标识重复');ids.add(m.id);
-  if(!['title','summary','field','text','divider','button','icon'].includes(m.type))throw Error('未知模块类型');
-  if(!number(m.x,0,2400)||!number(m.y,0,2400)||!number(m.w,8,2400)||!number(m.h,2,2400))throw Error('模块位置或尺寸无效');
-  if(!allowOverflow&&(m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7))throw Error('模块超出卡片边界，请扩大外框或移动／调整越界模块后保存');
-  if((m.fontWeight!==undefined&&![400,600,700].includes(m.fontWeight))||!number(m.fontSize,8,80)||!colors.test(m.color)||!['left','center','right'].includes(m.align))throw Error('模块文字样式无效');
-  if(['title','summary','field'].includes(m.type)&&!/^[a-zA-Z][\w-]{0,63}$/.test(m.field??''))throw Error('字段键需使用字母开头的英文、数字、下划线或连字符');
-  if(m.type==='icon'&&!Object.hasOwn(ICONS,m.icon))throw Error('请选择支持的图标');
-  if(m.type==='button'&&m.fillColor!==undefined&&!colors.test(m.fillColor))throw Error('按钮填充颜色无效');
-  if(m.type==='button'&&!['details','edit'].includes(m.action))throw Error('按钮动作无效');
+  if(!m.id||ids.has(m.id))throw Error(tr('模块标识重复'));ids.add(m.id);
+  if(!['title','summary','field','text','divider','button','icon'].includes(m.type))throw Error(tr('未知模块类型'));
+  if(!number(m.x,0,2400)||!number(m.y,0,2400)||!number(m.w,8,2400)||!number(m.h,2,2400))throw Error(tr('模块位置或尺寸无效'));
+  if(!allowOverflow&&(m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7))throw Error(tr('模块超出卡片边界，请扩大外框或移动／调整越界模块后保存'));
+  if((m.fontWeight!==undefined&&![400,600,700].includes(m.fontWeight))||!number(m.fontSize,8,80)||!colors.test(m.color)||!['left','center','right'].includes(m.align))throw Error(tr('模块文字样式无效'));
+  if(['title','summary','field'].includes(m.type)&&!/^[a-zA-Z][\w-]{0,63}$/.test(m.field??''))throw Error(tr('字段键需使用字母开头的英文、数字、下划线或连字符'));
+  if(m.type==='icon'&&!Object.hasOwn(ICONS,m.icon))throw Error(tr('请选择支持的图标'));
+  if(m.type==='button'&&m.fillColor!==undefined&&!colors.test(m.fillColor))throw Error(tr('按钮填充颜色无效'));
+  if(m.type==='button'&&!['details','edit'].includes(m.action))throw Error(tr('按钮动作无效'));
  }
  return t;
 }

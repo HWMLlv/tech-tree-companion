@@ -1,3 +1,4 @@
+import {tr} from '../src/i18n.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -23,7 +24,7 @@ test('resizing recalculates repeat count while retaining the chosen dash style',
 test('solid outlines retain the existing undashed contour and double-stroke behavior',()=>{
  const smooth=frame(352,240,'solid'),hand=frame(352,240,'solid',2);assert.doesNotMatch(smooth,/pathLength|stroke-dash/);assert.equal((smooth.match(/<path /g)??[]).length,1);assert.equal((hand.match(/<path /g)??[]).length,2);
 });
-const source=fs.readFileSync(new URL('../src/panel.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export class DetailPanel','globalThis.DetailPanel=class DetailPanel');const context={Component:class{}};vm.createContext(context);vm.runInContext(source,context);
+const source=fs.readFileSync(new URL('../src/panel.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export class DetailPanel','globalThis.DetailPanel=class DetailPanel');const context={Component:class{}};vm.createContext(Object.assign(context,{tr}));vm.runInContext(source,context);
 function event({interactive=false,inside=true,...fields}={}){return {button:0,target:{closest:()=>interactive?{}:null},preventDefault(){this.prevented=true;},stopPropagation(){this.stopped=true;},inside,...fields};}
 function panel(ev){const p=Object.create(context.DetailPanel.prototype);Object.assign(p,{draft:'正文原样',previewSizer:{contains:()=>ev.inside},setMode:async editing=>{p.requested=editing;}});return p;}
 test('double-clicking reading text reuses edit mode without modifying the draft',async()=>{

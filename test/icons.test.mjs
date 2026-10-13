@@ -1,3 +1,4 @@
+import {tr} from '../src/i18n.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -20,7 +21,7 @@ test('missing, non-icon and unsupported replacements reject without modifying th
 let lastPicker;
 class Picker{constructor(app,value,choose,options){Object.assign(this,{value,choose,options});lastPicker=this;}open(){}close(){this.options.onClose();}}
 const source=fs.readFileSync(new URL('../src/node-modal.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export class NodeModal','globalThis.NodeModal=class NodeModal').replace('export function confirmAction','function confirmAction');
-const context={Modal:class{},IconPicker:Picker,replaceModuleIcon};vm.createContext(context);vm.runInContext(source,context);
+const context={Modal:class{},IconPicker:Picker,replaceModuleIcon};vm.createContext(Object.assign(context,{tr}));vm.runInContext(source,context);
 function nodeFixture(){lastPicker=null;const m=Object.create(context.NodeModal.prototype),saved=fixture();Object.assign(m,{template:clone(saved),values:{title:'自定义矿物',materials:'8份',research:'120'},link:'[[原料.md#矿物]]',plugin:{},contentEl:{isConnected:true},iconTrigger:{isConnected:true,focus(){}},repaint(){this.paints=(this.paints??0)+1;}});return {m,saved};}
 test('opening or cancelling a node icon picker does not edit the node or saved template',()=>{
  const {m,saved}=nodeFixture(),before=clone({template:m.template,values:m.values,link:m.link});m.openIcons();assert.equal(lastPicker.options.targets.length,2);lastPicker.close();assert.equal(m.iconPicker,null);assert.deepEqual({template:m.template,values:m.values,link:m.link},before);assert.deepEqual(saved,before.template);assert.equal(m.paints,undefined);

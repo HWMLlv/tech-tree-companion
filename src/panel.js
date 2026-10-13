@@ -1,3 +1,4 @@
+import {tr} from './i18n.js';
 import {NativeDetailEditor} from './native-detail-editor.js';
 import {Component,MarkdownRenderer} from 'obsidian';
 import {EditorState,Transaction} from '@codemirror/state';
@@ -10,28 +11,28 @@ const lf=s=>s.replace(/\r\n/g,'\n');
 export class DetailPanel extends Component{
  constructor(plugin,win){super();this.plugin=plugin;this.app=plugin.app;this.win=win;plugin.addChild(this);
   this.registerEvent(this.app.vault.on('modify',f=>{if(f===this.file&&!this.writing)this.external().catch(e=>this.conflict(e));}));
-  this.registerEvent(this.app.vault.on('delete',f=>{if(f===this.file)this.conflict(new Conflict('原文已删除；草稿已保留，请重新关联节点'));}));
+  this.registerEvent(this.app.vault.on('delete',f=>{if(f===this.file)this.conflict(new Conflict(tr('原文已删除；草稿已保留，请重新关联节点')));}));
   this.registerEvent(this.app.vault.on('rename',(f,oldPath)=>{if(f!==this.file)return;const oldKey=oldPath+'#'+(this.heading??''),draft=this.plugin.data.drafts[oldKey];if(draft){this.plugin.data.drafts[this.draftKey()]=draft;delete this.plugin.data.drafts[oldKey];this.plugin.persist().catch(e=>this.plugin.error(e));}if(this.title)this.title.textContent=this.label();}));
  }
- label(){return this.file.path+(this.heading?' › '+this.heading:' · 正文');}
+ label(){return this.file.path+(this.heading?' › '+this.heading:tr(' · 正文'));}
  draftKey(){return this.file.path+'#'+(this.heading??'');}
  async open(view,node){
   if(this.closing)await this.closing;
   if(this.el&&!await this.flush())return false;
   const target=this.plugin.resolve(node.link,view.file.path),text=await this.app.vault.read(target.file),range=sectionRange(text,target.heading);
   this.disposeUI();this.modeScroll={};this.file=target.file;this.heading=target.heading;this.base=range.body;this.draft=lf(range.body);this.dirty=false;this.error=null;this.editing=false;this.graph=view;
-  const recovered=this.plugin.data.drafts[this.draftKey()];if(recovered&&recovered.text!==this.draft){this.base=recovered.baseline;this.draft=recovered.text;this.dirty=true;this.editing=true;this.error='已恢复未保存草稿；请核对原文后保存';}
+  const recovered=this.plugin.data.drafts[this.draftKey()];if(recovered&&recovered.text!==this.draft){this.base=recovered.baseline;this.draft=recovered.text;this.dirty=true;this.editing=true;this.error=tr('已恢复未保存草稿；请核对原文后保存');}
   this.build();await this.renderPreview();if(this.editing)this.setMode(true);this.status();return true;
  }
  build(){
-  const doc=this.win.document;this.el=doc.createElement('section');this.el.className='tt-panel workspace-leaf-content';this.el.dataset.type='markdown';this.el.setAttribute('aria-label','科技详情');this.el.setAttribute('role','region');doc.body.appendChild(this.el);
+  const doc=this.win.document;this.el=doc.createElement('section');this.el.className='tt-panel workspace-leaf-content';this.el.dataset.type='markdown';this.el.setAttribute('aria-label',tr('科技详情'));this.el.setAttribute('role','region');doc.body.appendChild(this.el);
   this.outside=ev=>{if(!this.el||this.el.contains(ev.target)||ev.button!==0||ev.target.closest?.('.modal-container,.menu,.suggestion-container,.popover'))return;this.close().catch(e=>this.conflict(e));};doc.addEventListener('pointerdown',this.outside,true);
-  const header=this.el.createDiv({cls:'tt-panel-header'});this.title=header.createDiv({cls:'tt-panel-title',text:this.label()});header.createEl('button',{text:'关闭',attr:{'aria-label':'关闭科技详情'}}).onclick=()=>this.close();
-  const bar=this.el.createDiv({cls:'tt-actions'});this.modeButton=bar.createEl('button',{text:'实时编辑'});this.modeButton.onclick=async()=>{if(this.editing&&!await this.flush())return;await this.setMode(!this.editing);};
-  bar.createEl('button',{text:'打开原文'}).onclick=()=>this.app.workspace.openLinkText(this.file.path+(this.heading?'#'+this.heading:''),this.graph.file?.path??'',true);
-  bar.createEl('button',{text:'重新载入'}).onclick=async()=>{if(this.dirty&&!await confirmAction(this.app,'放弃当前未保存草稿并重新载入原文？'))return;try{const range=sectionRange(await this.app.vault.read(this.file),this.heading);this.base=range.body;this.draft=lf(range.body);this.dirty=false;this.error=null;this.replaceEditor(this.draft);delete this.plugin.data.drafts[this.draftKey()];await this.plugin.persist();await this.renderPreview();this.status();}catch(e){this.conflict(e);}};
-  bar.createEl('button',{text:'复制草稿'}).onclick=()=>this.win.navigator.clipboard.writeText(this.draft);
-  bar.createEl('button',{text:'重试保存'}).onclick=()=>{this.error=null;this.flush();};
+  const header=this.el.createDiv({cls:'tt-panel-header'});this.title=header.createDiv({cls:'tt-panel-title',text:this.label()});header.createEl('button',{text:tr('关闭'),attr:{'aria-label':tr('关闭科技详情')}}).onclick=()=>this.close();
+  const bar=this.el.createDiv({cls:'tt-actions'});this.modeButton=bar.createEl('button',{text:tr('实时编辑')});this.modeButton.onclick=async()=>{if(this.editing&&!await this.flush())return;await this.setMode(!this.editing);};
+  bar.createEl('button',{text:tr('打开原文')}).onclick=()=>this.app.workspace.openLinkText(this.file.path+(this.heading?'#'+this.heading:''),this.graph.file?.path??'',true);
+  bar.createEl('button',{text:tr('重新载入')}).onclick=async()=>{if(this.dirty&&!await confirmAction(this.app,tr('放弃当前未保存草稿并重新载入原文？')))return;try{const range=sectionRange(await this.app.vault.read(this.file),this.heading);this.base=range.body;this.draft=lf(range.body);this.dirty=false;this.error=null;this.replaceEditor(this.draft);delete this.plugin.data.drafts[this.draftKey()];await this.plugin.persist();await this.renderPreview();this.status();}catch(e){this.conflict(e);}};
+  bar.createEl('button',{text:tr('复制草稿')}).onclick=()=>this.win.navigator.clipboard.writeText(this.draft);
+  bar.createEl('button',{text:tr('重试保存')}).onclick=()=>{this.error=null;this.flush();};
   this.statusEl=this.el.createDiv({cls:'tt-save-status',attr:{role:'status','aria-live':'polite'}});this.content=this.el.createDiv({cls:'view-content tt-detail-content'});this.reading=this.content.createDiv({cls:'markdown-reading-view'});this.preview=this.reading.createDiv({cls:'tt-detail-preview markdown-preview-view markdown-rendered'});this.previewSizer=this.preview.createDiv({cls:'markdown-preview-sizer markdown-preview-section'});this.editorHost=this.content.createDiv({cls:'tt-detail-editor'});this.editorHost.hidden=true;this.syncLayout();this.applySourceClasses();
   this.previewSizer.ondblclick=ev=>this.editFromPreview(ev).catch(e=>this.conflict(e));
   let drag=null;
@@ -46,7 +47,7 @@ export class DetailPanel extends Component{
   if(!target||!this.previewSizer?.contains(target)||target.closest('a,button,input,textarea,select,label,summary,audio,video,[contenteditable],[role="button"],[role="link"],.internal-embed,[data-href]'))return;
   ev.preventDefault();ev.stopPropagation();await this.setMode(true);
  }
- status(){if(this.statusEl)this.statusEl.textContent=this.error?'冲突／保存失败：'+this.error:this.writing?'保存中…':this.dirty?'未保存':'已保存';}
+ status(){if(this.statusEl)this.statusEl.textContent=this.error?tr('冲突／保存失败：')+this.error:this.writing?tr('保存中…'):this.dirty?tr('未保存'):tr('已保存');}
  conflict(e){this.error=e.message??String(e);window.clearTimeout(this.timer);this.remember();this.status();}
  remember(){if(!this.file)return;if(this.dirty)this.plugin.data.drafts[this.draftKey()]={text:this.draft,baseline:this.base,time:Date.now()};else delete this.plugin.data.drafts[this.draftKey()];window.clearTimeout(this.draftTimer);this.draftTimer=window.setTimeout(()=>this.plugin.persist().catch(e=>this.plugin.error(e)),150);}
  syncLayout(){const lines=this.app.vault.getConfig('showLineNumber')===true;this.el?.classList.toggle('tt-detail-has-lines',lines);this.nativeEditor?.surface?.classList.toggle('tt-detail-has-lines',lines);}
@@ -60,7 +61,7 @@ export class DetailPanel extends Component{
    if(editing){this.editorHost.hidden=false;this.editorHost.addClass('is-preparing');}
    await this.prepareMode(editing);
    if(this.el!==el)return;
-   this.syncLayout();this.editing=editing;this.reading.hidden=editing;this.editorHost.hidden=!editing;this.editorHost.removeClass('is-preparing');this.modeButton.textContent=editing?'阅读预览':'实时编辑';
+   this.syncLayout();this.editing=editing;this.reading.hidden=editing;this.editorHost.hidden=!editing;this.editorHost.removeClass('is-preparing');this.modeButton.textContent=editing?tr('阅读预览'):tr('实时编辑');
    const target=editing?(this.nativeEditor?.editor?.cm?.scrollDOM??this.editor?.scrollDOM):this.preview;
    if(editing)(this.nativeEditor?.editor??this.editor)?.focus();
    // A newly mounted native iframe measures its document after becoming visible.
@@ -82,7 +83,7 @@ export class DetailPanel extends Component{
   }
   if(editing&&this.nativeEditor)return;
   if(editing&&!this.editor){
-   this.editorHost.createDiv({cls:'tt-muted',text:'原生实时预览暂不可用，当前使用源码编辑；仍可切换阅读预览。'});
+   this.editorHost.createDiv({cls:'tt-muted',text:tr('原生实时预览暂不可用，当前使用源码编辑；仍可切换阅读预览。')});
    this.editor=new EditorView({parent:this.editorHost,root:this.el.getRootNode(),state:EditorState.create({doc:this.draft,extensions:[lineNumbers(),drawSelection(),history(),markdown(),keymap.of([...defaultKeymap,...historyKeymap]),EditorView.lineWrapping,EditorView.updateListener.of(update=>{
     if(!update.docChanged||this.loading)return;this.draft=update.state.doc.toString();this.dirty=this.draft!==lf(this.base);this.remember();this.status();this.schedule();
    }),EditorView.domEventHandlers({compositionstart:()=>{this.composing=true;window.clearTimeout(this.timer);},compositionend:()=>{this.composing=false;this.status();this.schedule();}})]})});
@@ -95,13 +96,13 @@ export class DetailPanel extends Component{
  schedule(){window.clearTimeout(this.timer);if(!this.composing&&this.dirty&&!this.error)this.timer=window.setTimeout(()=>this.flush(),750);}
  dirtySource(disk){return this.app.workspace.getLeavesOfType('markdown').some(l=>l.view.file===this.file&&l.view.editor&&lf(l.view.editor.getValue())!==lf(disk));}
  async flush(){
-  window.clearTimeout(this.timer);if(this.nativeEditor?.editor&&!this.loading)this.nativeEditor.changed(this.nativeEditor.getValue());window.clearTimeout(this.timer);if(this.composing){this.statusEl.textContent='正在输入，请完成输入后再切换或关闭';return false;}
+  window.clearTimeout(this.timer);if(this.nativeEditor?.editor&&!this.loading)this.nativeEditor.changed(this.nativeEditor.getValue());window.clearTimeout(this.timer);if(this.composing){this.statusEl.textContent=tr('正在输入，请完成输入后再切换或关闭');return false;}
   if(this.saving){await this.saving;if(this.error)return false;if(!this.dirty)return true;}
   if(!this.dirty)return true;if(this.error)return false;
   const file=this.file,heading=this.heading,baseline=this.base,draft=this.draft;this.writing=true;this.status();
   this.saving=(async()=>{
-   if(this.app.vault.getAbstractFileByPath(file.path)!==file)throw new Conflict('目标文件已不存在');
-   let result;await this.app.vault.process(file,current=>{if(this.dirtySource(current))throw new Conflict('原文编辑器存在未保存修改，请先在原文保存');result=replaceSection(current,heading,baseline,draft);return result.text;});
+   if(this.app.vault.getAbstractFileByPath(file.path)!==file)throw new Conflict(tr('目标文件已不存在'));
+   let result;await this.app.vault.process(file,current=>{if(this.dirtySource(current))throw new Conflict(tr('原文编辑器存在未保存修改，请先在原文保存'));result=replaceSection(current,heading,baseline,draft);return result.text;});
    this.base=result.body;
    if(this.draft===draft){this.draft=lf(result.body);if(this.editor&&this.draft!==this.editor.state.doc.toString()){
     // The only normal normalization is a final boundary newline: append it
@@ -114,7 +115,7 @@ export class DetailPanel extends Component{
  }
  async external(){
   if(!this.file||!this.el||this.writing)return;const range=sectionRange(await this.app.vault.read(this.file),this.heading);
-  if(range.body===this.base)return;if(this.dirty){this.conflict(new Conflict('原文章节已变化，未覆盖本地草稿'));return;}
+  if(range.body===this.base)return;if(this.dirty){this.conflict(new Conflict(tr('原文章节已变化，未覆盖本地草稿')));return;}
   this.base=range.body;this.draft=lf(range.body);this.replaceEditor(this.draft);await this.renderPreview();this.status();
  }
  async close(){if(this.closing)return this.closing;const el=this.el;this.closing=(async()=>{if(!await this.flush())return false;if(this.el===el)this.disposeUI();return true;})().finally(()=>this.closing=null);return this.closing;}

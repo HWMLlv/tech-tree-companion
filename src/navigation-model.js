@@ -1,3 +1,4 @@
+import {tr} from './i18n.js';
 import {isTech,moduleText} from './model.js';
 export const normalizeSearch=value=>String(value??'').normalize('NFKC').toLocaleLowerCase().trim();
 export function nodeEntries(elements){
@@ -5,7 +6,7 @@ export function nodeEntries(elements){
   const data=e.customData.techTree,modules=data.template?.modules??[],values=data.values??{};
   const title=moduleText(modules.find(m=>m.type==='title')??{type:'title',field:'title'},values);
   const content=modules.map(m=>moduleText(m,values)).filter(Boolean).join(' · ');
-  return {id:e.id,title,content,link:e.link??'',template:data.template?.name??'未命名模板',templateId:data.templateId,locked:!!e.locked};
+  return {id:e.id,title,content,link:e.link??'',template:data.template?.name??tr('未命名模板'),templateId:data.templateId,locked:!!e.locked};
  });
 }
 export function searchNodes(entries,query,templateId=''){

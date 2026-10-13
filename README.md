@@ -1,121 +1,80 @@
 # Tech Tree Companion
 
-Create SVG technology cards, manage card templates, draw connections, and edit linked Markdown sections inside Excalidraw. The current interface is in Chinese.
+**中文** | [English](README.en.md)
 
-This is an independent companion to [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin), not a first-party Obsidian or Excalidraw product.
+**把常用操作放到鼠标旁，在 Excalidraw 中组织科技树。**
 
-## Requirements
+Tech Tree Companion 是 Obsidian 中的 Excalidraw 辅助插件。用自定义快捷轮盘完成日常操作，用卡片和连线表达科技关系，再把卡片关联到笔记里的详细设计。
 
-- Obsidian **1.13.7 or later** on desktop. Windows 11 with Obsidian 1.13.7 is tested; macOS and Linux have not yet been tested. Mobile is not supported.
-- Install and enable **Excalidraw 2.25.3 or later** separately. Integration is tested with Excalidraw 2.25.3; the plugin checks the required APIs before editing a drawing. Native fonts and the chapter editor also depend on Excalidraw's runtime APIs; future upstream changes may require an update.
-- The plugin does not install or update itself or other plugins.
+[快速开始](#快速开始) · [界面语言](#界面语言) · [隐私与存储](docs/PRIVACY.zh-CN.md) · [下载发布版](https://github.com/HWMLlv/tech-tree-companion/releases)
 
-## Install
+## 一套轮盘，保留你的操作习惯
 
-Once admitted to the community directory, find **Tech Tree Companion** under Settings → Community plugins. Until then, download the release's `main.js`, `manifest.json`, and `styles.css`, put these three files in `<vault>/<configDir>/plugins/tech-tree-companion/`, then reload Obsidian and enable the plugin. The default configuration directory is `.obsidian`, but custom configuration directories are supported.
+内环放常用的绘图和节点操作；按需启用外环，放搜索、小地图、模板中心等导航与管理功能。内环仍由你自定义，外环也可以单独配置。
 
-No separate `runtime` directory is needed. The font worker, WebAssembly code, and bundled dependency license notices are embedded in `main.js`. When upgrading, back up and retain `data.json`, font caches, and generated card attachments.
+![中文双环编辑器：功能列表、轮盘预览与区块设置](docs/images/wheel-zh.png)
 
-## Use
+- **按住、选择、松开执行。** 在中心或圈外松开即可取消；也支持键盘触发和选择。
+- **按需切换内外环。** 轮盘出现后按辅助层切换键，默认是 Shift；两环半径与触发方式均可调整。
+- **在同一个编辑器里整理两环。** 拖入、排序、改名、换图标或跨环移动；切换时保留草稿，保存时一起保存。
+- **已有功能就地定位。** 添加列表里已加入的功能只置灰；再次点击会选中轮盘上的对应位置，并给出轻微的图标提示。
 
-1. Open an editable Excalidraw drawing and run **新建科技节点** to create a card. Fill its fields, choose a saved template, and optionally link a Markdown note or heading.
-2. Select a card and run **编辑节点** to edit its content, or **打开详情** to read and edit the linked note section. Double-click ordinary reading text to enter the existing live editor, retaining approximately the same reading position. Links, buttons, checkboxes, embeds, and modified double-clicks retain their normal behavior. The **实时编辑** button remains available. Detail edits are automatically saved. External changes trigger conflict handling; unsaved drafts can be retained and copied.
-3. Open **模板中心** to edit card layouts and save templates. **管理模板** in settings and the template center provides visual previews, explicit editing, inline rename, copy, default selection, and deletion. Template changes do not automatically rewrite existing cards.
-4. Configure **快捷轮盘**, **节点字体**, and **默认连线** in settings. Existing cards or arrows change only when explicitly updated. **优化选中节点附件（保留字体设置）** rebuilds selected cards using their existing font settings.
-5. Open **资源管理** to inspect attachment references, change card attachment folder/naming, or restore recycled files. Scanning does not delete files. Unreferenced owned attachments are retained for at least seven days before moving to the plugin's recoverable recycle area. After a further thirty days, a separate user-confirmed action can move them to the system trash. Recovery operations are guarded when drawings are open or scans are incomplete. Unknown/legacy attachments are not automatically claimed or deleted.
+## 卡片放概要，笔记放细节
 
-### Card borders and resizing
+把科技名称、摘要、材料和研究点组合成 SVG 卡片，再用连线组织前置关系。卡片字段和布局由模板定义，适合逐步建立自己的科技树表达方式。
 
-Dashed and dotted borders recalculate complete repeat cycles for the current card size. Rounded contours leave a gap at the closing seam; square contours leave gaps at all four corners so a dash does not wrap around a corner into an L shape. Width, color, fill, and hand-drawn styling are retained.
+![示例科技树：铜矿勘探、铜矿冶炼和电子技术](docs/images/cards-zh.png)
 
-In the template center, dragging the card resize handle updates only the border and background once per animation frame. Text, icons, and module positions remain unchanged. The preview follows continuous dimensions; releasing the pointer snaps to the existing grid, validates the final dimensions, and records one undo step. Escape cancels the resize. Shrinking past a module still displays an overflow warning rather than moving or truncating that module.
+卡片可以关联整篇 Markdown 笔记或一个标题章节。打开详情即可阅读和编辑关联正文；双击普通阅读文字也能进入编辑状态。模板调整不会自动改写已有卡片，由你决定何时应用。
 
-Existing SVG cards need an explicit edit/save or **优化选中节点附件（保留字体设置）** to regenerate their borders. There is no automatic vault-wide rewrite.
+![节点编辑器：直接在卡片预览中编辑字段](docs/images/node-zh.png)
 
-### Card icons
+## 外观可复用，图标快速调用
 
-The module properties panel retains the original 10 icons for immediate one-click selection. **更多图标** opens the independent 30-icon picker in four groups: common icons, resources/materials, production equipment, and processes/logistics. The picker shows category headings and icon names directly without redundant hover tooltips. Its current-icon preview stays synchronized with quick selections and confirmed popup selections, including extended icons. The new resource choices include ore, rock, crystal, ingot, powder, gravel, wood, and gas. Icons use the same outline style as the existing set and require no downloads.
+模板中心支持文字、字段、图标、分隔线和按钮模块。常用图标保留在属性栏中，更多图标在独立选择器里按类别浏览。换图标保留原有位置、尺寸与颜色；没有图标模块的模板需先添加模块。
 
-In **新建科技节点** or **编辑节点**, click **更换节点图标**. If the card contains multiple icon modules, choose which one to replace. **使用此图标** updates the editor draft; creating or saving the node applies it to the drawing. Cancel leaves the draft unchanged. Only the selected icon's shape changes: its color, position, size, card fields, links, and other parameters are retained. A saved change uses the drawing's normal undo/redo history.
+![图标选择器：常用、资源材料、生产设备与工艺物流](docs/images/icons-zh.png)
 
-If the selected template has no icon module, the entry stays disabled with an explanation. Add an icon module in **模板中心** first; the picker does not automatically add one or change the card layout. In the template editor, select an icon module and either click a quick icon or use **更多图标** to open the same picker. Template editing retains its existing save and undo behavior; existing cards are not automatically rewritten.
+## 图变大之后，也能找到方向
 
-## Navigation, dual-ring menu, and workflows
+| 功能 | 用途 |
+| --- | --- |
+| 搜索与定位 | 在当前绘图中按名称、字段、模板或关联路径查找卡片 |
+| 小地图 | 查看分布、点击定位、拖动平移；启用状态可跨绘图保留 |
+| 返回上个视图 | 回到之前的画布位置与缩放，与文件历史中的“返回”区分 |
+| 关联检查 | 检查笔记或章节是否仍可访问，再由你选择替换目标 |
+| 批量外观 | 预览并统一选中卡片的外观或图标，保留正文、位置和关联 |
+| 配置分享 | 导入导出模板、模块预设和轮盘配置，逐项处理冲突 |
 
-Available in 0.4.31. See [the Chinese usage guide](USER-GUIDE.zh-CN.md) for entry points and workflow details.
+## 快速开始
 
-- Search the current drawing by card title, visible fields, template, or linked path; locate a card and return to the previous viewport.
-- Toggle a lightweight minimap with click/drag navigation. Its preference persists across drawings and plugin reloads in the current vault. Geometry and native pan/zoom events refresh it; viewport-only changes reuse its scene bitmap.
-- Check linked documents and headings on demand, then explicitly choose a replacement for a broken link.
-- Preview and apply selected appearance/icon changes to multiple cards in one undoable operation. Card content, geometry, and links are preserved.
-- Export/import reusable templates, module presets, and radial-menu configuration with per-item conflict choices. Radial import is unchecked by default; existing cards are not rewritten.
-- Opt into a separately configurable auxiliary outer ring in radial settings. Both rings use the same three-column drag editor, with separate action libraries, retained drafts when switching rings, and one save for both rings. Open the existing custom wheel, then press Shift (configurable) to switch layers. Primary customization and outside-release cancellation remain unchanged.
+1. 使用桌面版 **Obsidian 1.13.7 或更高版本**，单独安装并启用 **Excalidraw 2.25.3 或更高版本**。
+2. 在 Obsidian 的第三方插件中搜索 **Tech Tree Companion**；也可从 [GitHub Releases](https://github.com/HWMLlv/tech-tree-companion/releases) 下载手动安装。
+3. 打开可编辑的 Excalidraw 绘图，运行 **新建科技节点**，填写字段并按需关联笔记。
+4. 在插件设置中配置快捷轮盘；到 **模板中心** 调整下一批卡片使用的模板。
 
-The settings overview scales continuously with its content width up to a bounded size. The editor fits the available width and height, keeps properties on the right at normal desktop widths, and uses a stacked layout only in narrow windows. Both runtime ring radii are configurable, with a minimum gap to prevent overlap. Preview scaling does not change runtime radii.
+手动安装只需 `main.js`、`manifest.json`、`styles.css` 三个文件，放入 `<仓库>/<配置目录>/plugins/tech-tree-companion/`，重新加载后启用插件。默认配置目录为 `.obsidian`，无需额外的运行时文件夹。升级时保留 `data.json`、字体缓存和生成的卡片附件。
 
-Batch template-field migration, cross-drawing search, and full multi-platform acceptance are not included.
+当前实机验证环境为 Windows 11、Obsidian 1.13.7 与 Excalidraw 2.25.3；macOS、Linux 尚未完成验证，**暂不支持移动端**。本插件是独立辅助项目，依赖 Excalidraw 提供绘图能力；不会自动安装或更新其他插件。
 
-## Network, privacy, and storage
+## 界面语言
 
-There are no accounts, payments, advertisements, analytics, client-side telemetry, or external file access in this plugin.
+插件设置顶部提供 **跟随 Obsidian / 中文 / English**，默认跟随 Obsidian；中文环境使用中文，其他语言环境使用英文。切换后重新打开已有编辑窗口即可更新显示。
 
-The only network requests download **versioned Xiaolai Chinese font shards registered by Excalidraw** from `unpkg.com` or `esm.sh`. These requests are needed when **Excalifont** is selected and Chinese glyphs are required. Requests use Obsidian's `requestUrl` and send the font URL, not note text, card text, paths, or vault contents. The CDN receives ordinary request metadata such as the IP address. Other third-party plugins may make their own requests independently.
+语言设置只作用于插件界面。已保存的卡片文字、模板名称、轮盘自定义名称和笔记内容保持原样；Obsidian 与其他插件的界面语言由它们自己的设置控制。
 
-Downloaded font shards are validated and cached under this plugin's configuration directory in `font-cache/`. An uncached shard requires a network connection; a cached shard works offline. If font preparation fails, the card save is rejected rather than silently saving an incomplete font. System fonts do not require downloads. Old unused font cache files may be removed automatically; card attachments are handled separately.
+## 隐私与存储
 
-Settings, templates, asset records, and retained detail drafts use Obsidian's plugin `data.json`. Generated SVGs are stored in a user-selected ordinary folder inside the vault (default: `科技树资源/卡片`); recycle files remain in the vault until the separately confirmed system-trash action. SVG cards embed native font subsets for standalone display. Their character-range declarations are compacted without changing geometry or text. System-font cards rely on font availability on the device that displays them.
+无需账户，无广告、分析统计或遥测。卡片、配置与关联笔记保存在本地仓库。仅在使用 Excalidraw 的中文手写字形且缺少缓存时，下载所需的版本化字体分片；不上传笔记正文或路径。
 
-Linked note edits replace only the validated heading section or whole note explicitly linked to the card. The plugin checks for concurrent source changes before writing. Keep vault backups, particularly before bulk changes. Native live editing aims to retain host Markdown/plugin styling, but third-party editor extensions and private Excalidraw APIs are not guaranteed compatible.
+资源管理会在本地扫描仓库引用，避免误回收仍在使用的附件。**扫描本身不移动或删除卡片附件**；回收、恢复和移至系统回收站是独立操作。点击“复制草稿”才会写入剪贴板。
 
-### Vault scanning and clipboard access
+完整的联网域名、扫描范围、触发条件和保留期见 [隐私与本地存储说明](docs/PRIVACY.zh-CN.md)。
 
-- **Vault enumeration and reference scanning:** Resource management uses `vault.getFiles()` to list visible vault files. To avoid recycling a card attachment that is still in use, it reads relevant `.md`, `.canvas`, `.json`, `.excalidraw`, `.svg`, `.html`, and `.css` files, checks Obsidian's resolved links, and includes open editor drafts in its local reference check. Registered card attachments and the plugin's default attachment/recycle folders are excluded from the general content scan; owned SVGs may be read separately for integrity checks and recovery. File paths and contents are not sent to a server.
-- **When scans run:** A scan is scheduled after plugin startup and relevant Excalidraw file changes. Opening resource management or its settings summary, clicking the scan/refresh button, and performing recovery/recycling operations also request reference checks. Background scanning maintains local resource records; it does not move or delete card attachments. Moving attachments to the recycle area or system trash requires a separate user-confirmed action. Avoiding the scan button alone does not disable background scanning; disabling the plugin stops its scheduled scans.
-- **Clipboard writes:** Clicking **复制草稿** (Copy draft) writes the current detail draft to the system clipboard and replaces its previous text. The plugin's own feature code does not actively read or monitor the system clipboard. Standard user-initiated paste in Obsidian's native editor is handled by the host. Avoid the Copy draft button to leave the clipboard untouched by this feature.
+## 文档与项目
 
-These capabilities may remain listed as community review recommendations because they are required by the corresponding features; documentation does not remove the underlying capability.
+- [中文使用指南](USER-GUIDE.zh-CN.md)
+- [开发与构建来源说明（English）](docs/DEVELOPMENT.md)
+- [反馈问题](https://github.com/HWMLlv/tech-tree-companion/issues)
 
-## Release provenance
-
-The [GitHub Actions workflow](.github/workflows/validate.yml) validates metadata, installs locked dependencies, runs lint and tests, and builds the three standard release files. Successful builds on this repository's `main` branch or version tags then generate GitHub artifact attestations for those exact files. Pull-request validation does not issue attestations. The workflow uploads a `community-release` artifact and does not publish or replace releases automatically.
-
-For a new release, upload the three files from the successful version-tag build's artifact. For an existing release, an attestation covers an attachment only when its SHA-256 matches the attested file; do not assume that a successful workflow attests different manually built files. Attestations establish build provenance, not a security audit or an Obsidian approval.
-
-After downloading release assets, users with GitHub CLI can verify each file, for example:
-
-```sh
-gh attestation verify main.js --repo HWMLlv/tech-tree-companion
-gh attestation verify manifest.json --repo HWMLlv/tech-tree-companion
-gh attestation verify styles.css --repo HWMLlv/tech-tree-companion
-```
-
-See [GitHub's artifact attestation documentation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
-
-## Development
-
-Use Node.js **24 LTS** and npm:
-
-```sh
-npm ci --ignore-scripts
-npm run lint
-npm test
-npm run build
-```
-
-The release files are in `dist/`. Commit the source, `manifest.json`, `versions.json`, lockfile, README, license, and notices. Do not commit `dist/` or a generated root `main.js`. See [SUBMISSION.md](SUBMISSION.md) for the current publication steps and validation boundaries.
-
-## License and acknowledgements
-
-Project code is **MIT**, copyright 2026 **HWMLlv**. See [LICENSE](LICENSE).
-
-Bundled dependencies retain their own licenses. Full license texts and copyright notices are in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) and the release's `main.js` header. They include CodeMirror, Rough.js, Markdown tooling, HarfBuzz, WOFF2 tooling, and supporting libraries. The npm package `woff2sfnt-sfnt2woff` omits a separate license file; the supplemented MIT text retains the 2014 Onur Demiralay attribution present in its source header and MIT designation in its package metadata.
-
-Native font assets come from the installed Excalidraw runtime and retain their upstream licensing; no font binaries are included in the release. Font name, copyright, and license metadata is retained by subsetting when present in the source shard (some upstream shards omit license fields). See the included [Excalifont notice](third-party/Excalifont-font-notice.txt), [Xiaolai OFL](third-party/Xiaolai-OFL.txt), [Excalidraw's font sources](https://github.com/excalidraw/excalidraw/tree/master/packages/excalidraw/fonts), and the installed runtime's font licenses. Excalifont is a trademark of Excalidraw. The project MIT license does not replace font licenses.
-
----
-
-中文说明：本插件用于 Excalidraw 科技树卡片、模板、连线与关联正文管理，当前界面为中文。发布版只需三个标准文件，无需额外 runtime 文件夹。首次使用中文手写字形需从字体 CDN 下载，缓存后可离线；不会上传正文或仓库内容。模板、字体、连线的设置不会自动改写已有卡片，需主动应用。资源扫描只统计引用；回收和移至系统回收站是独立操作，并有保留期与引用核验。请保留仓库备份。
-
-权限说明：资源扫描会列出仓库文件，读取上述相关格式的内容，并检查已打开的编辑草稿，以避免错误回收仍被引用的附件；检查在本地进行，不上传正文或路径。启动插件、相关绘图文件变化、打开资源管理或设置中的资源摘要、主动刷新及回收/恢复操作均可能触发扫描，关闭插件会停止其计划扫描。扫描本身不移动或删除卡片附件。“复制草稿”仅在点击后写入系统剪贴板并替换原有文本，插件功能不主动读取或监控剪贴板；原生编辑器的主动粘贴由宿主处理。
-
-发布来源说明：成功的 GitHub Actions 主分支或版本标签构建会为三个发布文件生成来源证明；PR 只验证，不生成证明。今后发布时使用对应版本标签构建的 `community-release` 附件。现有 Release 只有与构建文件的 SHA-256 完全一致时，才由该证明覆盖；来源证明不等于安全审计或 Obsidian 审核通过。
+项目代码使用 [MIT 许可证](LICENSE)，版权归 HWMLlv 所有。感谢 [Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) 及相关开源依赖。依赖与字体遵循各自许可证，详见 [第三方声明](THIRD-PARTY-NOTICES.txt)、[Excalifont 声明](third-party/Excalifont-font-notice.txt) 与 [Xiaolai 字体许可](third-party/Xiaolai-OFL.txt)。本项目不是 Obsidian 或 Excalidraw 的官方产品。

@@ -1,3 +1,4 @@
+import {tr} from './i18n.js';
 import {NATIVE_FONTS,nativeFont,nativeAlias} from './fonts.js';
 import {nativePackages} from './native-runtime.js';
 
@@ -32,14 +33,14 @@ export class NativeFonts{
  plan(doc,name,text){return fontPlan(this.registry(doc),name,text,this.cache?.memory);}
  async ensure(doc,plan){
   for(const [old,cache]of this.documents)if(old.defaultView?.closed){for(const {face}of cache.values())old.fonts.delete(face);this.documents.delete(old);}
-  if(!plan.available)return Promise.reject(Error(plan.missingCJK?'原生中文字体资源不可用，请检查 Excalidraw 版本或选择其他字体。':'原生字体资源暂不可用，请先启用 Excalidraw，或改选其他字体。'));
-  if(this.plugin.stopped)return Promise.reject(Error('插件已关闭'));
-  if(plan.pending?.length){if(!this.cache)throw Error('中文字体缓存不可用');for(let i=0;i<plan.pending.length;i+=3)await Promise.all(plan.pending.slice(i,i+3).map(async f=>{const src=await this.cache.get(f.url);plan.faces.push({...f,src});}));plan.pending=[];}
+  if(!plan.available)return Promise.reject(Error(plan.missingCJK?tr('原生中文字体资源不可用，请检查 Excalidraw 版本或选择其他字体。'):tr('原生字体资源暂不可用，请先启用 Excalidraw，或改选其他字体。')));
+  if(this.plugin.stopped)return Promise.reject(Error(tr('插件已关闭')));
+  if(plan.pending?.length){if(!this.cache)throw Error(tr('中文字体缓存不可用'));for(let i=0;i<plan.pending.length;i+=3)await Promise.all(plan.pending.slice(i,i+3).map(async f=>{const src=await this.cache.get(f.url);plan.faces.push({...f,src});}));plan.pending=[];}
   let cache=this.documents.get(doc);if(!cache)this.documents.set(doc,cache=new Map());
   return Promise.all(plan.faces.map(f=>{
    const key=f.family+'|'+f.src+'|'+f.weight+'|'+f.style+'|'+f.unicodeRange;if(cache.has(key))return cache.get(key).promise;
    const face=new doc.defaultView.FontFace(f.family,`url("${f.src}")`,{weight:f.weight,style:f.style,unicodeRange:f.unicodeRange});
-   const entry={face};entry.promise=face.load().then(()=>{if(this.plugin.stopped)throw Error('插件已关闭');doc.fonts.add(face);return face;}).catch(e=>{cache.delete(key);throw e;});cache.set(key,entry);return entry.promise;
+   const entry={face};entry.promise=face.load().then(()=>{if(this.plugin.stopped)throw Error(tr('插件已关闭'));doc.fonts.add(face);return face;}).catch(e=>{cache.delete(key);throw e;});cache.set(key,entry);return entry.promise;
   }));
  }
  ready(doc,plan){const cache=this.documents.get(doc);return plan.available&&!plan.pending?.length&&plan.faces.every(f=>cache?.get(f.family+'|'+f.src+'|'+f.weight+'|'+f.style+'|'+f.unicodeRange)?.face.status==='loaded');}

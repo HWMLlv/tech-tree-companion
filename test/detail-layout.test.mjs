@@ -1,9 +1,10 @@
+import {tr} from '../src/i18n.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const source=fs.readFileSync(new URL('../src/panel.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace('export class DetailPanel','globalThis.DetailPanel=class DetailPanel');
-const context={Component:class{},console,window:{clearTimeout,setTimeout}};vm.createContext(context);vm.runInContext(source,context);
+const context={Component:class{},console,window:{clearTimeout,setTimeout}};vm.createContext(Object.assign(context,{tr}));vm.runInContext(source,context);
 const el=()=>({hidden:false,classes:new Set(),addClass(c){this.classes.add(c)},removeClass(c){this.classes.delete(c)}});
 function fixture(){const p=Object.create(context.DetailPanel.prototype);Object.assign(p,{win:{requestAnimationFrame:cb=>queueMicrotask(cb)},el:el(),reading:el(),editorHost:el(),modeButton:{disabled:false,textContent:'实时编辑'},preview:{scrollTop:120,scrollLeft:3,scrollHeight:1000,clientHeight:400},editing:false,syncLayout(){},prepareMode:async()=>{}});p.editorHost.hidden=true;p.nativeEditor={editor:{cm:{scrollDOM:{scrollTop:0,scrollLeft:0,scrollHeight:1600,clientHeight:400}},focus(){p.focused=true}}};return p;}
 test('reading remains visible while the native editor initializes; repeated toggle is gated',async()=>{const p=fixture();let ready,calls=0;p.prepareMode=()=>{calls++;return new Promise(r=>ready=r)};const pending=p.setMode(true);assert.equal(p.reading.hidden,false);assert.equal(p.editorHost.classes.has('is-preparing'),true);assert.equal(p.modeButton.disabled,true);await p.setMode(true);assert.equal(calls,1);ready();await pending;assert.equal(p.reading.hidden,true);assert.equal(p.editorHost.hidden,false);assert.equal(p.editorHost.classes.has('is-preparing'),false);assert.equal(p.focused,true);assert.equal(p.modeButton.disabled,false);});

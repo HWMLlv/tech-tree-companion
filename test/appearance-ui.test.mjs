@@ -1,3 +1,4 @@
+import {tr} from '../src/i18n.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,7 +12,7 @@ class Element{
  all(){return [this,...this.children.flatMap(e=>e.all())];}
 }
 const source=fs.readFileSync(new URL('../src/appearance-ui.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replaceAll('export function ','function ');
-const context={appearance,resizeTemplate,tidyNumber,moduleFontWeight,FONT_SIZES,buttonFill,fontInput:()=>{}};vm.createContext(context);vm.runInContext(source,context);
+const context={appearance,resizeTemplate,tidyNumber,moduleFontWeight,FONT_SIZES,buttonFill,fontInput:()=>{}};vm.createContext(Object.assign(context,{tr}));vm.runInContext(source,context);
 function render(type){const t=clone(DEFAULT_TEMPLATE),module={...t.modules[0],type,id:'selected'};t.modules=[module];const properties=new Element(),view={template:t,selected:module.id,properties,propertyTab:'module',plugin:{data:{}},edit:()=>{},drawProperties:()=>{}};context.drawTemplateProperties(view);return properties.all();}
 const labels=elements=>elements.map(e=>e.options.attr?.['aria-label']).filter(Boolean);
 test('button exposes working typography controls but no ineffective alignment choice',()=>{const els=render('button'),names=labels(els);assert.ok(names.includes('字号'));assert.ok(names.includes('精确字号'));assert.ok(!names.includes('文字对齐'));assert.ok(els.some(e=>e.options.text==='按钮文字固定居中。'));});
