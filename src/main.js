@@ -15,6 +15,8 @@ import {DEFAULT_TEMPLATE,clone,isTech,instance,renderNode,svgData,hitNode,hitBut
 import {safeLinkPart,parseLink} from './sections.js';
 import {DetailPanel} from './panel.js';
 import {NodeModal} from './node-modal.js';
+import {TemplatePicker} from './template-picker.js';
+import {setCardPickerMode} from './template-deck-model.js';
 import {TemplateView,TEMPLATE_VIEW,ApplyTemplateModal} from './template-view.js';
 import {connectionStyle,applyConnectionStyle,bindAtSide} from './connection-style.js';
 import {ConnectionStyleModal,ConnectionSettingTab} from './connection-ui.js';
@@ -257,7 +259,16 @@ export default class TechTreePlugin extends Plugin{
    await this.commit(v,work,target);return node.id;
   }finally{try{work?.destroy();}finally{this.busy.delete(v);}}
  }
- openNode(v,node=null,position=null){if(!this.live(v)||this.modal)return;const m=new NodeModal(this,v,node);if(position)m.position={...position};this.modal=m;m.open();}
+ openNode(v,node=null,position=null,template=null){
+  if(!this.live(v)||this.modal)return;
+  if(!node&&!template&&this.data.cardTemplatePicker===true){
+   const target=this.target(v),e=this.ea(v),origin=position??e.getViewLastPointerPosition()??e.getViewCenterPosition();e.destroy();
+   const resume=chosen=>{try{this.checkTarget(v,target);this.openNode(v,null,origin,chosen);}catch(error){this.error(error);}};
+   const picker=new TemplatePicker(this,this.defaultTemplate().id,{title:tr('未命名科技')},resume,null,{entry:true,onStandard:async active=>{await setCardPickerMode(this,false);if(active.closed||this.stopped)return;active.close();resume(this.defaultTemplate());}});
+   this.modal=picker;picker.open();return;
+  }
+  const m=new NodeModal(this,v,node);if(template)m.template=clone(template);if(position)m.position={...position};this.modal=m;m.open();
+ }
  async openTemplates(){const current=this.view();if(current)this.origin={leaf:current.leaf,path:current.file.path};let leaf=this.app.workspace.getLeavesOfType(TEMPLATE_VIEW)[0];if(!leaf){leaf=this.app.workspace.getLeaf(true);await leaf.setViewState({type:TEMPLATE_VIEW,active:true});}await this.app.workspace.revealLeaf(leaf);this.app.workspace.setActiveLeaf(leaf,{focus:true});}
  resolve(link,sourcePath){const excal=this.requireExcalidraw().plugin,ref=parseLink(link);if(!ref)throw Error(tr('此节点尚未关联文档'));const file=this.app.metadataCache.getFirstLinkpathDest(ref.path,sourcePath);if(!file||file.extension!=='md'||excal.isExcalidrawFile(file))throw Error(tr('目标文档不存在'));return {file,heading:ref.heading};}
  async details(v,node){

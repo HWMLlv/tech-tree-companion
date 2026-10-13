@@ -780,5 +780,7 @@
   "使用此模板": "Use this template",
   "预览暂不可用": "Preview unavailable",
   "创意卡牌选择": "Creative card picker",
-  "默认关闭。新建节点时可手动切换卡牌或常规选择；记住选择方式，拖动浏览后确认应用。": "Off by default. Switch manually between the card view and standard picker when creating a node. Remembers your choice; browse by dragging and confirm to apply."
+  "默认关闭。新建节点时可手动切换卡牌或常规选择；记住选择方式，拖动浏览后确认应用。": "Off by default. Switch manually between the card view and standard picker when creating a node. Remembers your choice; browse by dragging and confirm to apply.",
+  "先选择模板，再进入节点编辑。左右循环翻牌；取消不会创建节点。": "Choose a template first, then edit the node. Flip through cards in a loop; cancel does not create a node.",
+  "开启后，新建节点先进入卡牌选择，确认模板后再编辑。关闭时直接进入原编辑界面；记住选择方式。": "When enabled, new nodes start with card selection; confirm a template before editing. When off, open the original editor directly. Remembers your choice."
 }

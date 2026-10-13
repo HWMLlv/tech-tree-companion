@@ -21,7 +21,7 @@ Keep frequent drawing and node actions in the inner ring. Enable an optional out
 
 ## Optional card template picker
 
-Click **Card view** when creating a node, or enable **Creative card picker** under **Card templates** in settings. The standard dropdown remains the default and you can switch back at any time. Wide windows display seven to nine real templates. Drag through cards, click a side card, or use the arrow buttons; search and a grid view are also available. A separate border identifies the default template. **Use this template** applies your choice; cancel keeps the current draft.
+Enable **Creative card picker** under **Card templates** in settings to choose a template before entering the new-node editor. Standard mode still opens the original editor directly. Wide windows show seven to nine solid cards in a fan, with circular browsing, drag gestures, side-card clicks, and arrow buttons. Search and a grid view are available. The centered **Use this template** button confirms your choice; corner marks, a fine grid, and ruler ticks identify the default template. Cancel at the first step creates no node; cancel while choosing again preserves your draft.
 
 ## Cards for the overview, notes for the detail
 
