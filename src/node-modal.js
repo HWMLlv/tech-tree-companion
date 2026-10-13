@@ -8,14 +8,24 @@ import {sectionRange} from './sections.js';
 import {effectiveFont,fontStack} from './fonts.js';
 import {appearanceControls} from './appearance-ui.js';
 import {IconPicker} from './icon-ui.js';
+import {TemplatePicker} from './template-picker.js';
+import {setCardPickerMode} from './template-deck-model.js';
 export class NodeModal extends Modal{
  constructor(plugin,view,node){super(plugin.app);this.plugin=plugin;this.view=view;this.node=node;this.target=plugin.target(view,node?[node]:[]);this.template=clone(node?.customData.techTree.template??plugin.defaultTemplate());this.values=clone(node?.customData.techTree.values??{});if(!node)this.values.title=tr('未命名科技');this.link=node?.link??null;
   const e=plugin.ea(view);this.position=e.getViewLastPointerPosition()??e.getViewCenterPosition();e.destroy();}
- onOpen(){this.modalEl.addClass('tt-node-modal','tt-inline-node-modal');this.draw();this.keyScope=new Scope(this.scope);this.keyScope.register([], 'Escape',()=>{if(this.activeEditor)this.focusField(this.activeEditor.dataset.nodeFieldId);else this.close();return false;});this.keyScope.register(['Mod'],'Enter',ev=>{if(!ev.isComposing&&!ev.repeat)this.submit().catch(e=>this.plugin.error(e));return false;});this.app.keymap.pushScope(this.keyScope);this.contentEl.onkeydown=ev=>this.keyDown(ev);this.contentEl.ownerDocument.defaultView.setTimeout(()=>{if(this.contentEl.isConnected)this.focusField(editableFields(this.template)[0]?.id);},0);}
+ onOpen(){this.modalEl.addClass('tt-node-modal','tt-inline-node-modal');this.draw();this.keyScope=new Scope(this.scope);this.keyScope.register([], 'Escape',()=>{if(this.activeEditor)this.focusField(this.activeEditor.dataset.nodeFieldId);else this.close();return false;});this.keyScope.register(['Mod'],'Enter',ev=>{if(!ev.isComposing&&!ev.repeat)this.submit().catch(e=>this.plugin.error(e));return false;});this.app.keymap.pushScope(this.keyScope);this.contentEl.onkeydown=ev=>this.keyDown(ev);this.contentEl.ownerDocument.defaultView.setTimeout(()=>{if(this.contentEl.isConnected&&!this.templatePicker&&!this.iconPicker)this.focusField(editableFields(this.template)[0]?.id);},0);}
  draw(){
+  this.templatePicker?.close();
   this.iconPicker?.close();
+  this.templateTrigger=null;
   const root=this.contentEl;root.empty();const el=root.createDiv({cls:'tt-node-editor-header'});el.createEl('h2',{text:this.node?tr('编辑科技节点'):tr('新建科技节点')});
-  if(!this.node){const label=el.createEl('label',{text:tr('节点模板')}),select=label.createEl('select');for(const t of this.plugin.templates())select.createEl('option',{value:t.id,text:t.name});select.value=this.template.id;select.onchange=()=>{this.template=clone(this.plugin.templates().find(t=>t.id===select.value));this.draw();};}
+  if(!this.node){
+   const row=el.createDiv({cls:'tt-node-template-choice'}),label=row.createEl('label',{text:tr('节点模板')});
+   if(this.plugin.data.cardTemplatePicker===true){this.templateTrigger=label.createEl('button',{text:this.template.name,attr:{type:'button','aria-haspopup':'dialog'}});this.templateTrigger.onclick=()=>this.openTemplatePicker();}
+   else{const select=label.createEl('select');for(const t of this.plugin.templates())select.createEl('option',{value:t.id,text:t.name});select.value=this.template.id;select.onchange=()=>{const next=this.plugin.templates().find(t=>t.id===select.value);if(next){this.template=clone(next);this.draw();}};}
+   const mode=row.createEl('button',{text:this.plugin.data.cardTemplatePicker===true?tr('常规选择'):tr('卡牌选择'),attr:{type:'button','aria-pressed':String(this.plugin.data.cardTemplatePicker===true)}});
+   mode.onclick=async()=>{mode.disabled=true;try{const cards=this.plugin.data.cardTemplatePicker!==true;await setCardPickerMode(this.plugin,cards);if(!this.contentEl.isConnected)return;this.draw();if(cards)this.openTemplatePicker();}catch(e){this.plugin.error(e);}finally{mode.disabled=false;}};
+  }
   const linkRow=el.createDiv({cls:'tt-link-row'});linkRow.createDiv({text:this.link??tr('未关联文档（可以保留为占位节点）')});
   linkRow.createEl('button',{text:tr('搜索文档／章节')}).onclick=async()=>{const picked=await this.plugin.chooseLink();if(!picked)return;if(!this.contentEl.isConnected)return;const previous=this.linkedTitle();this.values.title=titleForRelink(this.values.title,previous,picked.title);this.link=picked.link;this.draw();};
   if(this.link){linkRow.createEl('button',{text:tr('使用关联标题')}).onclick=()=>{this.values.title=this.linkedTitle();this.draw();};}
@@ -39,9 +49,13 @@ export class NodeModal extends Modal{
   const row=root.createDiv({cls:'tt-actions'});row.createEl('button',{text:tr('取消')}).onclick=()=>this.close();const save=row.createEl('button',{text:this.node?tr('保存节点'):tr('创建节点'),cls:'mod-cta'});save.onclick=()=>this.submit().catch(e=>this.plugin.error(e));this.saveButton=save;repaint();this.plugin.hintRoot(root);
  }
  openIcons(){
-  if(this.iconPicker)return;const targets=this.template.modules.filter(m=>m.type==='icon').map((m,i)=>({id:m.id,label:m.label||tr('图标 ')+(i+1),icon:m.icon,color:m.color}));if(!targets.length)return;
+  if(this.iconPicker||this.templatePicker)return;const targets=this.template.modules.filter(m=>m.type==='icon').map((m,i)=>({id:m.id,label:m.label||tr('图标 ')+(i+1),icon:m.icon,color:m.color}));if(!targets.length)return;
   this.activeEditor?.blur();const template=this.template,trigger=this.iconTrigger;
   this.iconPicker=new IconPicker(this.app,targets[0].icon,(key,id)=>{if(!this.contentEl.isConnected||this.template!==template)return;replaceModuleIcon(this.template,id,key);this.repaint();},{owner:this.plugin,targets,onClose:()=>{this.iconPicker=null;if(trigger.isConnected)trigger.focus({preventScroll:true});}});this.iconPicker.open();
+ }
+ openTemplatePicker(){
+  if(this.node||this.iconPicker||this.templatePicker)return;this.activeEditor?.blur();const trigger=this.templateTrigger;
+  this.templatePicker=new TemplatePicker(this.plugin,this.template.id,this.values,template=>{if(!this.contentEl.isConnected||this.plugin.stopped)return;this.template=template;this.draw();this.templateTrigger?.focus({preventScroll:true});},()=>{this.templatePicker=null;if(trigger?.isConnected)trigger.focus({preventScroll:true});});this.templatePicker.open();
  }
  linkedTitle(){if(!this.link)return '';try{const {file,heading}=this.plugin.resolve(this.link,this.view.file.path);return heading??file.basename;}catch{return titleFromLink(this.link);}}
  focusField(id,editing=false){const box=[...this.board.querySelectorAll('.tt-inline-field')].find(el=>el.dataset.nodeFieldId===id);if(!box)return;this.activeEditor?.blur();box.focus();if(editing)box.click();}
@@ -55,7 +69,7 @@ export class NodeModal extends Modal{
   if(/^Arrow(Up|Down|Left|Right)$/.test(ev.key)&&(!editing||ev.altKey)&&!ev.ctrlKey&&!ev.metaKey&&!ev.shiftKey){ev.preventDefault();ev.stopPropagation();this.focusField(adjacentField(all,id,ev.key),editing);}
  }
  async submit(){
-  if(this.iconPicker)return;
+  if(this.iconPicker||this.templatePicker)return;
   if(this.submitting)return;this.submitting=true;this.saveButton.disabled=true;
   try{
    this.plugin.checkTarget(this.view,this.target);
@@ -66,6 +80,6 @@ export class NodeModal extends Modal{
    this.close();
   }finally{this.submitting=false;this.saveButton.disabled=false;}
  }
- onClose(){this.iconPicker?.close();if(this.keyScope){this.app.keymap.popScope(this.keyScope);this.keyScope=null;}this.resizeObserver?.disconnect();if(this.plugin.modal===this)this.plugin.modal=null;this.contentEl.empty();window.setTimeout(()=>{if(this.plugin.live(this.view)&&!this.plugin.modal)this.view.containerEl.querySelector('.excalidraw')?.focus();},50);}
+ onClose(){this.templatePicker?.close();this.iconPicker?.close();if(this.keyScope){this.app.keymap.popScope(this.keyScope);this.keyScope=null;}this.resizeObserver?.disconnect();if(this.plugin.modal===this)this.plugin.modal=null;this.contentEl.empty();window.setTimeout(()=>{if(this.plugin.live(this.view)&&!this.plugin.modal)this.view.containerEl.querySelector('.excalidraw')?.focus();},50);}
 }
 export function confirmAction(app,message){return new Promise(resolve=>{let done=false;class Confirm extends Modal{onOpen(){this.contentEl.createEl('p',{text:message});this.contentEl.createEl('button',{text:tr('取消')}).onclick=()=>this.close();this.contentEl.createEl('button',{text:tr('确认'),cls:'mod-warning'}).onclick=()=>{done=true;resolve(true);this.close();};}onClose(){if(!done)resolve(false);}}new Confirm(app).open();});}

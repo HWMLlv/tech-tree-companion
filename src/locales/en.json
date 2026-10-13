@@ -765,5 +765,20 @@
   "正在准备中文手写字体…": "Preparing Chinese handwriting font…",
   "未命名科技": "Untitled technology",
   "打开": "Open",
-  "留空可恢复随界面语言变化的默认名称。": "Leave blank to restore the default name that follows the interface language."
+  "留空可恢复随界面语言变化的默认名称。": "Leave blank to restore the default name that follows the interface language.",
+  "卡牌式模板选择": "Card template picker",
+  "拖动翻牌、点击侧边卡牌或使用方向键。浏览不会修改节点，确认后才应用模板。": "Drag to flip through cards, click a side card, or use the arrow keys. Browsing does not change the node; confirm to apply a template.",
+  "搜索模板名称": "Search template names",
+  "网格选择": "Grid view",
+  "卡牌选择": "Card view",
+  "常规选择": "Standard picker",
+  "模板卡牌": "Template cards",
+  "模板网格": "Template grid",
+  "没有匹配的模板": "No matching templates",
+  "上一个模板": "Previous template",
+  "下一个模板": "Next template",
+  "使用此模板": "Use this template",
+  "预览暂不可用": "Preview unavailable",
+  "创意卡牌选择": "Creative card picker",
+  "默认关闭。新建节点时可手动切换卡牌或常规选择；记住选择方式，拖动浏览后确认应用。": "Off by default. Switch manually between the card view and standard picker when creating a node. Remembers your choice; browse by dragging and confirm to apply."
 }

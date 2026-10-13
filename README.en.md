@@ -19,6 +19,10 @@ Keep frequent drawing and node actions in the inner ring. Enable an optional out
 - **Edit both rings together.** Drag, reorder, rename, change icons, or move actions between rings. Switching retains both drafts; one save applies both.
 - **Find actions already on the wheel.** Added actions appear dimmed in the library. Click one to select its existing segment, with a gentle icon cue.
 
+## Optional card template picker
+
+Click **Card view** when creating a node, or enable **Creative card picker** under **Card templates** in settings. The standard dropdown remains the default and you can switch back at any time. Wide windows display seven to nine real templates. Drag through cards, click a side card, or use the arrow buttons; search and a grid view are also available. A separate border identifies the default template. **Use this template** applies your choice; cancel keeps the current draft.
+
 ## Cards for the overview, notes for the detail
 
 Combine a title, summary, materials, and research points in an SVG card. Connect cards to describe prerequisites. Templates define the fields and layout, so you can develop a visual language for your own technology tree.
