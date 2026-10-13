@@ -1,7 +1,7 @@
 import {tr} from './i18n.js';
 import {ViewHistory} from './view-history.js';
 import {Modal,Notice} from 'obsidian';
-import {nodeEntries,searchNodes,elementBounds,sceneBounds,fitMap,viewport,focusState,mapGeometryKey} from './navigation-model.js';
+import {nodeEntries,searchNodes,elementBounds,elementPoints,sceneBounds,fitMap,viewport,focusState,mapGeometryKey} from './navigation-model.js';
 import {isTech} from './model.js';
 import {sectionRange} from './sections.js';
 
@@ -56,7 +56,7 @@ export class CanvasNavigation{
    if(!old||old.key!==key){
     const bitmap=this.doc.createElement('canvas');bitmap.width=264;bitmap.height=164;const bg=bitmap.getContext('2d'),t=fitMap(sceneBounds(elements),264,164);bg.translate(t.x,t.y);bg.scale(t.scale,t.scale);bg.lineWidth=1/t.scale;
     for(const e of elements){if(e.isDeleted)continue;const b=elementBounds(e);bg.globalAlpha=isTech(e)?1:.3;bg.strokeStyle=colors[0];bg.fillStyle=this.matches.has(e.id)?colors[1]:isTech(e)?colors[0]:colors[2];
-     if(e.type==='arrow'||e.type==='line'){bg.beginPath();const points=e.points??[[0,0],[e.width,e.height]];for(let i=0;i<points.length;i++){const [px,py]=points[i],dx=px-e.width/2,dy=py-e.height/2,a=e.angle??0,x=e.x+e.width/2+dx*Math.cos(a)-dy*Math.sin(a),y=e.y+e.height/2+dx*Math.sin(a)+dy*Math.cos(a);if(i)bg.lineTo(x,y);else bg.moveTo(x,y);}bg.stroke();}
+     if(['arrow','line','freedraw'].includes(e.type)){bg.beginPath();const points=elementPoints(e);for(let i=0;i<points.length;i++){const {x,y}=points[i];if(i)bg.lineTo(x,y);else bg.moveTo(x,y);}bg.stroke();}
      else bg.fillRect(b.x,b.y,Math.max(b.width,2/t.scale),Math.max(b.height,2/t.scale));
     }this.mapCache={bitmap,transform:t,key};
    }

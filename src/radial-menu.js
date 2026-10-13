@@ -1,11 +1,12 @@
 import {tr} from './i18n.js';
+import {radialLabel} from './radial-labels.js';
 import {setIcon} from 'obsidian';
 import {radialConfig,isCommandAction,bindingMatches,wheelLayout,wheelHit,sectorAngles,sectorPath,auxiliaryKeyConflict,auxiliaryItems,auxiliaryLayout} from './radial-model.js';
 export function drawWheel(root,items,{r=120,inner=44,disabled=()=>false}={}){
  root.classList.add('tt-wheel');root.style.width=root.style.height=2*r+'px';
  const doc=root.ownerDocument,svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox',`${-r} ${-r} ${2*r} ${2*r}`);root.append(svg);
  return items.map((item,i)=>{const path=doc.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',sectorPath(i,items.length,r,inner));path.dataset.index=String(i);svg.append(path);
-  const label=doc.createElement('span');label.className='tt-wheel-label';label.dataset.index=String(i);const angle=sectorAngles(i,items.length).middle,d=(r+inner)/2;label.style.width=(items.length>4?Math.max(42,Math.min(80,(r+inner)*Math.sin(Math.PI/items.length)*.9)):80)+'px';label.style.left=r+Math.cos(angle)*d+'px';label.style.top=r+Math.sin(angle)*d+'px';const icon=doc.createElement('span');setIcon(icon,item.icon);label.append(icon);const text=doc.createElement('span');text.textContent=item.label;label.append(text);root.append(label);
+  const label=doc.createElement('span');label.className='tt-wheel-label';label.dataset.index=String(i);const angle=sectorAngles(i,items.length).middle,d=(r+inner)/2;label.style.width=(items.length>4?Math.max(42,Math.min(80,(r+inner)*Math.sin(Math.PI/items.length)*.9)):80)+'px';label.style.left=r+Math.cos(angle)*d+'px';label.style.top=r+Math.sin(angle)*d+'px';const icon=doc.createElement('span');setIcon(icon,item.icon);label.append(icon);const text=doc.createElement('span');text.textContent=radialLabel(item);label.append(text);root.append(label);
   if(disabled(item)){path.classList.add('is-disabled');label.classList.add('is-disabled');}return {path,label};
  });
 }

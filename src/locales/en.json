@@ -764,5 +764,6 @@
   "仅切换插件界面文字，不翻译已保存的卡片、笔记或自定义名称。重新打开其他面板以更新显示。": "Changes plugin interface text only. Saved cards, notes, and custom names are not translated. Reopen other panels to refresh their labels.",
   "正在准备中文手写字体…": "Preparing Chinese handwriting font…",
   "未命名科技": "Untitled technology",
-  "打开": "Open"
+  "打开": "Open",
+  "留空可恢复随界面语言变化的默认名称。": "Leave blank to restore the default name that follows the interface language."
 }

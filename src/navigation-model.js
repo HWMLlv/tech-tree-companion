@@ -14,7 +14,19 @@ export function searchNodes(entries,query,templateId=''){
  return entries.filter(e=>(!templateId||e.templateId===templateId)&&words.every(word=>normalizeSearch([e.title,e.content,e.link,e.template].join(' ')).includes(word)))
  .sort((a,b)=>Number(normalizeSearch(b.title)===normalizeSearch(query))-Number(normalizeSearch(a.title)===normalizeSearch(query))||a.title.localeCompare(b.title,'zh-CN'));
 }
+export function elementPoints(e){
+ const points=e.points?.filter(p=>Array.isArray(p)&&p.length>=2&&p.slice(0,2).every(Number.isFinite))??[];
+ if(!points.length)return [];
+ let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ for(const [x,y]of points){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+ const cx=(minX+maxX)/2,cy=(minY+maxY)/2,a=e.angle??0,cos=Math.cos(a),sin=Math.sin(a);
+ return points.map(([x,y])=>({x:e.x+cx+(x-cx)*cos-(y-cy)*sin,y:e.y+cy+(x-cx)*sin+(y-cy)*cos}));
+}
 export function elementBounds(e){
+ if(['arrow','line','freedraw'].includes(e.type)){
+  const points=elementPoints(e);
+  if(points.length){let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;for(const p of points){x=Math.min(x,p.x);y=Math.min(y,p.y);right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);}return {x,y,width:right-x,height:bottom-y};}
+ }
  const angle=e.angle??0,cx=e.x+e.width/2,cy=e.y+e.height/2;
  const w=Math.abs(e.width*Math.cos(angle))+Math.abs(e.height*Math.sin(angle)),h=Math.abs(e.width*Math.sin(angle))+Math.abs(e.height*Math.cos(angle));
  return {x:cx-w/2,y:cy-h/2,width:w,height:h};

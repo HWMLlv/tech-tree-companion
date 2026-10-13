@@ -5,7 +5,7 @@ const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export class RadialDraft{
  constructor(input,pluginId){
   const config=radialConfig(input);this.pluginId=pluginId;this.config=config;
-  this.layers={inner:{...copy(config),items:copy(config.items)},outer:{...copy(config),items:config.auxiliaryItems.map((i,n)=>({id:'outer-'+n,action:'aux:'+i.id,label:i.label,icon:i.icon,command:''}))}};
+  this.layers={inner:{...copy(config),items:copy(config.items)},outer:{...copy(config),items:config.auxiliaryItems.map((i,n)=>({id:'outer-'+n,action:'aux:'+i.id,label:i.label,icon:i.icon,command:'',...(i.labelCustom?{labelCustom:true}:{})}))}};
   this.history={inner:[],outer:[]};this.future={inner:[],outer:[]};this.base=this.snapshot();
  }
  snapshot(){return copy({inner:this.layers.inner.items,outer:this.layers.outer.items});}
@@ -27,5 +27,5 @@ export class RadialDraft{
   if(dest.some(i=>i.action===next.action&&(i.command??'')===next.command))throw Error(tr('目标轮盘已包含该功能'));
   const before=this.snapshot();source.splice(index,1);dest.push(next);this.record(layer,before);return other;
  }
- output(){return {items:copy(this.layers.inner.items),auxiliaryItems:this.layers.outer.items.map(i=>({id:i.action.slice(4),label:i.label,icon:i.icon}))};}
+ output(){return {items:copy(this.layers.inner.items),auxiliaryItems:this.layers.outer.items.map(i=>({id:i.action.slice(4),label:i.label,icon:i.icon,...(i.labelCustom?{labelCustom:true}:{})}))};}
 }
