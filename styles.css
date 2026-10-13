@@ -209,8 +209,16 @@
 .tt-workflow-modal{width:min(880px,94vw);max-height:90vh;display:flex;flex-direction:column}
 .tt-workflow-modal>.modal-content{min-height:0;overflow:auto;padding-top:12px}
 .tt-workflow-modal>.modal-close-button{z-index:2}
-.tt-config-modal{height:min(640px,90vh);overflow:hidden}
-.tt-config-modal>.modal-content{flex:1;scrollbar-gutter:stable;overflow-x:hidden;overflow-y:auto;overflow-anchor:none}
+.modal-container.tt-config-container{overflow:hidden}
+.modal.tt-config-modal{height:min(640px,90vh);min-width:0;overflow:hidden}
+.modal.tt-config-modal>.modal-content{flex:1;min-width:0;max-width:100%;scrollbar-gutter:stable;overflow-x:hidden;overflow-y:auto;overflow-anchor:none}
+/* Native pressed thumbs briefly grow beyond their track during release. Keep
+   sliding feedback, but no size/left animation that expands scrollable bounds. */
+.modal.tt-config-modal .checkbox-container::after{transition:transform .15s ease-in-out,opacity .1s ease-in-out}
+.modal.tt-config-modal .checkbox-container:not(.is-disabled):active::after,
+.modal.tt-config-modal .checkbox-container.is-enabled:not(.is-disabled):active::after{width:var(--toggle-thumb-width);height:var(--toggle-thumb-height);margin-top:var(--toggle-border-width);left:0}
+.tt-config-modal input[type=file],.tt-config-modal select{min-width:0;max-width:100%}
+.tt-config-modal .tt-config-row strong{overflow-wrap:anywhere}
 .tt-search-filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .tt-search-filters input{flex:1;min-width:180px}
 .tt-node-results{display:flex;flex-direction:column;gap:10px;margin-top:12px}

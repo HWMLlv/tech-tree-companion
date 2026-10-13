@@ -9,7 +9,7 @@ import {TEMPLATE_VIEW} from './template-view.js';
 export function openConfigTransfer(p){if(p.modal)return;const m=new ConfigTransferModal(p);p.modal=m;m.open();}
 export class ConfigTransferModal extends Modal{
  constructor(p){super(p.app);this.p=p;this.choices={templates:{},modulePresets:{},radial:false};}
- onOpen(){this.modalEl.addClass('tt-workflow-modal','tt-config-modal');this.setTitle(tr('配置导入与导出'));const root=this.contentEl;
+ onOpen(){this.containerEl.addClass('tt-config-container');this.modalEl.addClass('tt-workflow-modal','tt-config-modal');this.setTitle(tr('配置导入与导出'));const root=this.contentEl;
   root.createEl('p',{cls:'tt-muted',text:tr('分享卡片模板、我的模块和轮盘配置。配置包不包含正文、草稿、卡片附件或缓存。')});
   const exportArea=root.createEl('section');exportArea.createEl('h3',{text:tr('导出')});const selected={templates:true,modulePresets:true,radial:true};
   for(const [key,label]of [['templates',tr('卡片模板')],['modulePresets',tr('我的模块')],['radial',tr('自定义轮盘')]])new Setting(exportArea).setName(label).addToggle(t=>t.setValue(true).onChange(v=>{selected[key]=v;}));
