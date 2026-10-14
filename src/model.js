@@ -1,4 +1,5 @@
 import {tr} from './i18n.js';
+import {textLayout} from './text-layout.js';
 import {ICONS,iconBody} from './icons.js';
 import {effectiveFont,fontStack,validFont} from './fonts.js';
 import {isColor,validateAppearance,renderFrame} from './appearance.js';
@@ -53,7 +54,7 @@ export function moduleText(m,values){
  if(['divider','icon'].includes(m.type))return ''; 
  if(m.type==='text'||m.type==='button')return m.label??'';
  const value=String(values[m.field]??'');
- if(m.type==='title')return value||'未命名科技';
+ if(m.type==='title')return value||tr('未命名科技');
  if(m.type==='summary')return value||'';
  return `${m.label||m.field}：${value||'—'}`;
 }
@@ -66,16 +67,10 @@ export function renderNode(template,values={},measure,font=effectiveFont(templat
   if(m.type==='icon'){parts.push(`<svg x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" color="${m.color}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${iconBody(m.icon)}</svg>`);continue;}
   if(m.type==='divider'){parts.push(`<path d="M ${m.x} ${m.y+m.h/2} h ${m.w}" stroke="${m.color}" stroke-width="1"/>`);continue;}
   if(m.type==='button')parts.push(`<rect x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" rx="4" fill="${buttonFill(m)}" stroke="${m.color}"/>`);
-  const pad=m.type==='button'?4:0,available=m.w-pad*2,lineHeight=m.fontSize*1.3,maxLines=Math.max(1,Math.floor(m.h/lineHeight));
-  const lines=[];
-  for(const paragraph of moduleText(m,values).split('\n')){
-   let line='';for(const c of Array.from(paragraph)){if(line&&measure(line+c,m.fontSize,weight)>available){lines.push(line);line='';}line+=c;}lines.push(line);
-  }
-  if(lines.length>maxLines){overflow.push(m.id);lines.length=maxLines;let last=lines.at(-1);while(last&&measure(last+'…',m.fontSize,weight)>available)last=Array.from(last).slice(0,-1).join('');lines[maxLines-1]=last+'…';}
-  if((m.h<lineHeight||lines.some(line=>measure(line,m.fontSize,weight)>available))&&!overflow.includes(m.id))overflow.push(m.id);
+  const pad=m.type==='button'?4:0,available=m.w-pad*2,layout=textLayout(moduleText(m,values),{width:available,height:m.h,fontSize:m.fontSize,fontWeight:weight},measure),{lines,lineHeight}=layout;
+  if(layout.overflow)overflow.push(m.id);
   const align=m.type==='button'?'center':m.align,x=align==='center'?m.x+m.w/2:align==='right'?m.x+m.w-pad:m.x+pad;
-  const metrics=measure.metrics?.(m.fontSize,weight,lines.join(' '))??{ascent:m.fontSize*.8,descent:m.fontSize*.2};
-  const inkHeight=(lines.length-1)*lineHeight+metrics.ascent+metrics.descent,baseline=m.y+Math.max(0,(m.h-inkHeight)/2)+metrics.ascent;
+  const baseline=m.y+layout.baseline;
   parts.push(`<svg x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" viewBox="${m.x} ${m.y} ${m.w} ${m.h}" overflow="hidden"><text font-family="${xml(fontStack(font))}" font-size="${m.fontSize}" font-weight="${weight}" fill="${m.color}" text-anchor="${align==='center'?'middle':align==='right'?'end':'start'}">`);
   lines.forEach((line,i)=>parts.push(`<tspan x="${x}" y="${baseline+i*lineHeight}">${xml(line)}</tspan>`));parts.push('</text></svg>');
  }

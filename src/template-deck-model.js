@@ -3,16 +3,51 @@ export const boundIndex=(value,count)=>Math.max(0,Math.min(Math.max(0,count-1),v
 export const wrapIndex=(value,count)=>count>0?((value%count)+count)%count:0;
 export const nearestSlot=(index,position,count)=>count>1?wrapIndex(index,count)+Math.round((position-wrapIndex(index,count))/count)*count:0;
 export const visibleSlots=(count,slots)=>count<2?count:Math.min(slots,count%2?count:count+1);
-export function loopWindow(position,count,slots){
+export function loopWindow(position,count,slots,overscan=1){
  if(count<2)return count?[0]:[];
- // Two overscan cards enter outside the clip, rather than appearing mid-stack.
- const size=visibleSlots(count,slots)+2,start=Math.floor(position)-Math.floor(size/2);
+ const size=visibleSlots(count,slots)+2*overscan,start=Math.floor(position)-Math.floor(size/2);
  return Array.from({length:size},(_,i)=>start+i);
 }
-export function deckGeometry(width){
- const slots=width>=1000?9:width>=680?7:width>=480?5:3;
+export function deckGeometry(width,height=420,count=Number.MAX_SAFE_INTEGER,perspective=1400){
+ const slots=visibleSlots(count,width>=1000?9:width>=680?7:width>=480?5:3);
  const cardWidth=Math.min(280,Math.max(140,width*.38));
- return {slots,cardWidth,step:Math.max(44,(width-cardWidth*.65)/(slots-1))};
+ const cardHeight=Math.min(340,height*.8),step=Math.max(44,(width-cardWidth*.65)/Math.max(1,slots-1)),half=Math.floor(slots/2);
+ let edge=half+1;
+ // Perspective pulls outer faces back toward the clip. Use their projected
+ // corners, with room for shadows, instead of assuming a one-card buffer.
+ if(count>1)for(;edge<24;edge++){
+  let outside=true;
+  for(const reduced of [false,true])for(const fraction of [0,.25,.5,.75,1]){
+   const quad=projectCard(deckPose(edge+fraction,0,step,reduced,cardWidth),cardWidth,cardHeight,perspective);
+   if(Math.min(...quad.map(p=>p.x))<width/2+24)outside=false;
+  }
+  if(outside)break;
+ }
+ return {slots,cardWidth,cardHeight,step,perspective,edge,overscan:count>1?edge-half:0};
+}
+export function projectCard(pose,width,height,perspective=1400){
+ const roll=pose.roll*Math.PI/180,yaw=pose.angle*Math.PI/180;
+ return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sy])=>{
+  const x=sx*width/2*pose.scale,y=sy*height/2*pose.scale,rx=x*Math.cos(roll)-y*Math.sin(roll),ry=x*Math.sin(roll)+y*Math.cos(roll);
+  const z=pose.depth-rx*Math.sin(yaw),factor=perspective/(perspective-z);
+  return {x:(pose.x+rx*Math.cos(yaw))*factor,y:(pose.y+ry)*factor};
+ });
+}
+export function insideCard(point,quad){
+ let sign=0;
+ for(let i=0;i<quad.length;i++){const a=quad[i],b=quad[(i+1)%quad.length],cross=(b.x-a.x)*(point.y-a.y)-(b.y-a.y)*(point.x-a.x);if(Math.abs(cross)<.001)continue;const next=Math.sign(cross);if(sign&&sign!==next)return false;sign=next;}
+ return true;
+}
+export function hitDeck(point,slots,position,geometry,reduced=false){
+ let best=null,depth=-Infinity;
+ for(const slot of slots){
+  const pose=deckPose(slot,position,geometry.step,reduced,geometry.cardWidth),quad=projectCard(pose,geometry.cardWidth,geometry.cardHeight,geometry.perspective);
+  if(!insideCard(point,quad))continue;
+  const yaw=pose.angle*Math.PI/180,sin=Math.sin(yaw),cos=Math.cos(yaw),p=geometry.perspective;
+  const ray=(sin*pose.x+cos*(pose.depth-p))/(sin*point.x-cos*p),z=p*(1-ray);
+  if(z>depth){depth=z;best=slot;}
+ }
+ return best;
 }
 export function deckPose(index,position,step,reduced=false,cardWidth=280){
  const delta=index-position,distance=Math.abs(delta);

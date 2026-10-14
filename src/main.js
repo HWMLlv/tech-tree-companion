@@ -32,7 +32,7 @@ export default class TechTreePlugin extends Plugin{
  async onload(){
   this.stopped=false;
   addIcon(TECH_ICON,TECH_MARK);this.hints=new Map();
-  const saved=await this.loadData();setLanguage(saved?.language,obsidianLanguage());this.data={schema:1,templates:[this.freshTemplate()],defaultTemplate:'builtin-tech',drafts:{},...saved};
+  const saved=await this.loadData();setLanguage(saved?.language,obsidianLanguage());this.data={schema:1,templates:[this.freshTemplate()],defaultTemplate:'builtin-tech',drafts:{},...saved};if(this.data.cardTemplatePicker===undefined)this.data.cardTemplatePicker=false;
   this.data.connectionStyle=connectionStyle(this.data.connectionStyle);
   this.data.radial=radialConfig(this.data.radial);
   if(!saved?.radial?.items)for(const item of this.data.radial.items)item.label=tr(item.label);
@@ -75,7 +75,7 @@ export default class TechTreePlugin extends Plugin{
  refreshLanguage(){setLanguage(this.data.language,obsidianLanguage());for(const [id,key]of this.localizedCommands??[]){const command=this.app.commands.commands[this.manifest.id+':'+id];if(command)command.name=this.manifest.name+': '+tr(key);}this.ribbonEl?.setAttribute('aria-label',tr('科技树模板中心'));}
  async setUiLanguage(value){const before=this.data.language;this.data.language=['zh','en'].includes(value)?value:'auto';try{await this.persist();}catch(e){this.data.language=before;throw e;}this.refreshLanguage();for(const owner of this.owners.values())owner.radial?.cancel();}
  hintRoot(root){const doc=root.ownerDocument;if(!this.hints.has(doc))this.hints.set(doc,new Hints(doc));this.hints.get(doc).refresh(root);}
- onunload(){this.stopped=true;this.assets?.destroy();for(const modal of this.resourceModals??[])modal.close();for(const modal of this.templateManagers??[])modal.close();for(const picker of this.iconPickers??[])picker.close();for(const picker of this.templatePickers??[])picker.close();this.fontSubset?.destroy();window.clearTimeout(this.scanTimer);for(const hints of this.hints.values())hints.destroy();this.hints.clear();this.nativeFonts.destroy();for(const picker of this.colorPickers)picker.close();for(const picker of this.fontPickers)picker.close();this.cancelPlacement();for(const [v,o]of this.owners)v.removeChild(o);this.owners.clear();for(const p of this.panels.values())p.destroy();this.panels.clear();this.modal?.close();}
+ onunload(){this.stopped=true;for(const flight of this.templateFlights??[])flight.cancel();this.assets?.destroy();for(const modal of this.resourceModals??[])modal.close();for(const modal of this.templateManagers??[])modal.close();for(const picker of this.iconPickers??[])picker.close();for(const picker of this.templatePickers??[])picker.close();this.fontSubset?.destroy();window.clearTimeout(this.scanTimer);for(const hints of this.hints.values())hints.destroy();this.hints.clear();this.nativeFonts.destroy();for(const picker of this.colorPickers)picker.close();for(const picker of this.fontPickers)picker.close();this.cancelPlacement();for(const [v,o]of this.owners)v.removeChild(o);this.owners.clear();for(const p of this.panels.values())p.destroy();this.panels.clear();this.modal?.close();}
  error(e){console.error('[科技树]',e);new Notice(e.message??String(e));}
  requireExcalidraw(doc){const state=dependencyState(this,doc);if(!state.ready)throw Error(state.message);return state;}
  view(){const v=this.app.workspace.getActiveViewOfType(View);return this.live(v)&&v?.getViewType?.()==='excalidraw'&&v._loaded?v:null;}
@@ -118,11 +118,14 @@ export default class TechTreePlugin extends Plugin{
  }
  templates(){return this.data.templates.filter(t=>{try{validateTemplate(t);return true;}catch{return false;}});}
  defaultTemplate(){return this.templates().find(t=>t.id===this.data.defaultTemplate)??this.templates()[0]??this.freshTemplate();}
- render(v,t,values,embedFonts=false){
-  const doc=v?.containerEl?.ownerDocument??document;let context=this.measureCache.get(doc);
+ textMeasure(doc,font){
+  let context=this.measureCache.get(doc);
   if(!context){context=doc.createElement('canvas').getContext('2d');this.measureCache.set(doc,context);}
-  const font=effectiveFont(t,this.data.fontFamily),prepare=(size,weight)=>context.font=`${weight??400} ${size}px ${fontStack(font)}`;
-  const measure=(text,size,weight)=>{prepare(size,weight);return context.measureText(text).width;};measure.metrics=(size,weight,text)=>{prepare(size,weight);const m=context.measureText(text||'Ag');return {ascent:m.actualBoundingBoxAscent||size*.8,descent:m.actualBoundingBoxDescent||size*.2};};
+  const prepare=(size,weight)=>context.font=`${weight??400} ${size}px ${fontStack(font)}`;
+  const measure=(text,size,weight)=>{prepare(size,weight);return context.measureText(text).width;};measure.metrics=(size,weight,text)=>{prepare(size,weight);const m=context.measureText(text||'Ag');return {ascent:m.actualBoundingBoxAscent,descent:m.actualBoundingBoxDescent,fontAscent:m.fontBoundingBoxAscent,fontDescent:m.fontBoundingBoxDescent};};return measure;
+ }
+ render(v,t,values,embedFonts=false){
+  const doc=v?.containerEl?.ownerDocument??document,font=effectiveFont(t,this.data.fontFamily),measure=this.textMeasure(doc,font);
   const plan=this.nativeFonts.plan(doc,font,t.modules.map(m=>moduleText(m,values??{})).join('')+'…');
   if(!this.nativeFonts.ready(doc,plan)&&plan.available&&!plan.pending?.some(f=>this.nativeFonts.cache?.failures.has(f.url))){
    if(!this.fontRenders.has(doc)){const pending=this.nativeFonts.ensure(doc,plan).then(()=>{this.fontRenders.delete(doc);if(this.stopped)return;for(const leaf of this.app.workspace.getLeavesOfType(TEMPLATE_VIEW))leaf.view.paint?.();this.modal?.repaint?.();this.modal?.drawAfter?.();for(const manager of this.templateManagers??[])manager.refreshPreviews();for(const picker of this.templatePickers??[])picker.refreshPreviews();const placement=this.placement,source=placement?.source();if(source)replaceSvg(placement.card,this.render(placement.view,source.customData.techTree.template,{}).svg);}).catch(e=>{this.fontRenders.delete(doc);if(!this.stopped)this.error(e);});this.fontRenders.set(doc,pending);}
@@ -263,11 +266,11 @@ export default class TechTreePlugin extends Plugin{
   if(!this.live(v)||this.modal)return;
   if(!node&&!template&&this.data.cardTemplatePicker===true){
    const target=this.target(v),e=this.ea(v),origin=position??e.getViewLastPointerPosition()??e.getViewCenterPosition();e.destroy();
-   const resume=chosen=>{try{this.checkTarget(v,target);this.openNode(v,null,origin,chosen);}catch(error){this.error(error);}};
+   const resume=chosen=>{try{this.checkTarget(v,target);return this.openNode(v,null,origin,chosen);}catch(error){this.error(error);}};
    const picker=new TemplatePicker(this,this.defaultTemplate().id,{title:tr('未命名科技')},resume,null,{entry:true,onStandard:async active=>{await setCardPickerMode(this,false);if(active.closed||this.stopped)return;active.close();resume(this.defaultTemplate());}});
    this.modal=picker;picker.open();return;
   }
-  const m=new NodeModal(this,v,node);if(template)m.template=clone(template);if(position)m.position={...position};this.modal=m;m.open();
+  const m=new NodeModal(this,v,node);if(template)m.template=clone(template);if(position)m.position={...position};this.modal=m;m.open();return m;
  }
  async openTemplates(){const current=this.view();if(current)this.origin={leaf:current.leaf,path:current.file.path};let leaf=this.app.workspace.getLeavesOfType(TEMPLATE_VIEW)[0];if(!leaf){leaf=this.app.workspace.getLeaf(true);await leaf.setViewState({type:TEMPLATE_VIEW,active:true});}await this.app.workspace.revealLeaf(leaf);this.app.workspace.setActiveLeaf(leaf,{focus:true});}
  resolve(link,sourcePath){const excal=this.requireExcalidraw().plugin,ref=parseLink(link);if(!ref)throw Error(tr('此节点尚未关联文档'));const file=this.app.metadataCache.getFirstLinkpathDest(ref.path,sourcePath);if(!file||file.extension!=='md'||excal.isExcalidrawFile(file))throw Error(tr('目标文档不存在'));return {file,heading:ref.heading};}

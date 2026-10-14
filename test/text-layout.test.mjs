@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {textLayout,inlineFieldGeometry} from '../src/text-layout.js';
+import {DEFAULT_TEMPLATE,clone,renderNode,moduleText} from '../src/model.js';
+import {setLanguage} from '../src/i18n.js';
+const measure=(text,size)=>Array.from(text).length*size*.6;
+measure.metrics=size=>({ascent:size*.75,descent:size*.05,fontAscent:size*.95,fontDescent:size*.25});
+const options={width:272,height:40,fontSize:40,fontWeight:600};
+test('a visible glyph that fits is not overflow just because its line box is taller',()=>{const r=textLayout('邻居',options,measure);assert.equal(r.overflow,false);assert.equal(r.inkHeight,32);assert.equal(r.baseline,34);});
+test('multiple lines fit according to actual ink plus inter-line spacing',()=>{const r=textLayout('A\nB',{...options,fontSize:16},measure);assert.equal(r.overflow,false);assert.deepEqual(r.lines,['A','B']);assert.ok(Math.abs(r.inkHeight-33.6)<1e-7);});
+test('genuine height and width overflow remain reported and clipped',()=>{assert.ok(textLayout('中',{...options,height:8},measure).overflow);assert.ok(textLayout('中',{...options,width:8},measure).overflow);const r=textLayout('A\nB\nC',options,measure);assert.ok(r.overflow);assert.deepEqual(r.lines,['A…']);});
+test('empty text never creates a false overflow warning',()=>{assert.equal(textLayout('',{...options,height:2},measure).overflow,false);});
+test('zero descent remains valid instead of growing an artificial descender gap',()=>{const m=Object.assign((text,size)=>text.length*size*.5,{metrics:size=>({ascent:size,descent:0})});assert.equal(textLayout('A',options,m).overflow,false);});
+test('inline control retains font size and moves native leading outside the visible field',()=>{const g=inlineFieldGeometry({w:272,h:40,fontSize:40,fontWeight:600},'邻居',measure,2);assert.equal(g.fontSize,80);assert.equal(g.lineHeight,104);assert.ok(g.top<0);assert.ok(g.height>=g.lineHeight);assert.equal(g.overflow,false);});
+test('empty inline field stays nonoverflowing even with an oversized placeholder',()=>{const g=inlineFieldGeometry({w:80,h:8,fontSize:80,fontWeight:600},'',measure,1,'科技名称');assert.equal(g.overflow,false);assert.ok(g.height>=104);});
+test('raw multiline drafts remain complete while preview adds a clipping ellipsis',()=>{const values={title:'A\nB\nC'},t=clone(DEFAULT_TEMPLATE);t.modules[0].fontSize=40;t.modules[0].h=40;const before=structuredClone(values),r=renderNode(t,values,measure);assert.ok(r.overflow.includes('title'));assert.deepEqual(values,before);assert.ok(r.svg.includes('A…'));});
+test('empty title fallback follows the UI language without translating user content',()=>{try{setLanguage('en');assert.equal(moduleText({type:'title',field:'title'},{}),'Untitled technology');assert.equal(moduleText({type:'title',field:'title'},{title:'邻居'}),'邻居');}finally{setLanguage('zh');}});

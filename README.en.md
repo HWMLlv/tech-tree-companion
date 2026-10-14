@@ -21,7 +21,11 @@ Keep frequent drawing and node actions in the inner ring. Enable an optional out
 
 ## Optional card template picker
 
-Enable **Creative card picker** under **Card templates** in settings to choose a template before entering the new-node editor. Standard mode still opens the original editor directly. Wide windows show seven to nine solid cards in a fan, with circular browsing, drag gestures, side-card clicks, and arrow buttons. Search and a grid view are available. The centered **Use this template** button confirms your choice; corner marks, a fine grid, and ruler ticks identify the default template. Cancel at the first step creates no node; cancel while choosing again preserves your draft.
+**Creative card picker is optional and off by default.** Enable it under **Card templates** to choose a template before entering the new-node editor. Standard mode opens the original editor and dropdown directly. An existing manual preference is retained.
+
+Solid cards in a fan support circular browsing, drag-and-snap gestures, exposed side-card clicks, arrow keys, and fixed navigation buttons. Search and grid views are available. Confirm with **Use this template**, or double-click a card that was already selected before the first click. Double-clicking a side card only browses. The confirmed card lifts and flies into the editor preview; reduced-motion mode opens the editor immediately. Cancel at the first step creates no node; cancel during reselection preserves fields and the document link.
+
+Static engineering labels, dimensions, revision numbers, and ruler marks identify the default template. Preview caching is bounded and released on close. Card mode still needs more graphics work than the standard dropdown.
 
 ## Cards for the overview, notes for the detail
 
@@ -31,7 +35,9 @@ Combine a title, summary, materials, and research points in an SVG card. Connect
 
 Link a card to a whole Markdown note or a heading section. Open its details to read and edit the linked text; double-click ordinary reading text to enter the editor. Template changes do not automatically rewrite existing cards. You choose when to apply them.
 
-![Node editor with fields edited directly in the card preview](docs/images/node-en.png)
+![Node editor with fields edited directly in the card preview and tools in the footer](docs/images/node-433-en.png)
+
+Appearance and icon tools sit in the fixed footer. Inline editing keeps the template font size and complete text. Fitting text and empty fields no longer acquire a scrollbar from extra native line-box space. Genuine overflow remains visible in warnings and scrollable while editing. The template center uses the same glyph-based layout check.
 
 ## Reusable layouts and quick icon choices
 
