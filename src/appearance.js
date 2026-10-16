@@ -1,5 +1,6 @@
 import {tr} from './i18n.js';
 import rough from 'roughjs/bundled/rough.cjs.js';
+import {cardShape,curvedContour} from './card-shape.js';
 export const DEFAULT_APPEARANCE={strokeWidth:2,strokeStyle:'solid',roughness:0,corner:'round',opacity:100,textOpacity:100,fillStyle:'solid'};
 export const appearance=t=>({...DEFAULT_APPEARANCE,...t.appearance});
 export const isColor=c=>c==='transparent'||/^#[0-9a-f]{6}$/i.test(c);
@@ -39,7 +40,8 @@ function dashAttributes(path,a){
 }
 export function renderFrame(t){
  const a=validateAppearance(t),inset=Math.max(1,a.strokeWidth/2+1),w=t.width-inset*2,h=t.height-inset*2,r=a.corner==='round'?Math.min(32,Math.min(w,h)*.12):0;
- const path=contour(inset,inset,w,h,r),stroke=a.strokeWidth&&t.border!=='transparent'?t.border:'none';
+ const shape=cardShape(t),outline=bow=>shape==='rectangle'?contour(inset,inset,w,h,r,bow):curvedContour(shape,inset,inset,w,h,bow);
+ const path=outline(0),stroke=a.strokeWidth&&t.border!=='transparent'?t.border:'none';
  const parts=[];
  // Transparent means no fill operation, regardless of the remembered fill preset.
  if(t.background!=='transparent'){
@@ -48,7 +50,7 @@ export function renderFrame(t){
  }
  if(stroke!=='none'){
   const amount=a.roughness*.65,sign=seed(t.id)%2?1:-1;
-  const draw=bow=>{const outline=contour(inset,inset,w,h,r,bow),outlines=!r&&a.strokeStyle!=='solid'?squareEdges(outline):[outline];return outlines.map(edge=>`<path d="${edge}" fill="none" stroke="${stroke}" stroke-width="${a.strokeWidth}"${dashAttributes(edge,a)} stroke-linecap="round" stroke-linejoin="round"/>`).join('');};
+  const draw=bow=>{const path=outline(bow),outlines=shape==='rectangle'&&!r&&a.strokeStyle!=='solid'?squareEdges(path):[path];return outlines.map(edge=>`<path d="${edge}" fill="none" stroke="${stroke}" stroke-width="${a.strokeWidth}"${dashAttributes(edge,a)} stroke-linecap="round" stroke-linejoin="round"/>`).join('');};
   parts.push(draw(amount*sign));
   // Keep double-stroke character subtle; dashes use one stroke per edge/contour.
   if(a.roughness===2&&a.strokeStyle==='solid')parts.push(draw(-amount*sign*.6));

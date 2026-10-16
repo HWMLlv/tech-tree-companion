@@ -12,6 +12,7 @@ import {setCardPickerMode} from './template-deck-model.js';
 import {choices,colorControls} from './appearance-ui.js';
 import {nativeLibrary} from './native-runtime.js';
 import {arrowType,withArrowType,previewArrow} from './connection-preview.js';
+import {settingsDefinitions} from './settings-definitions.js';
 const heads={none:'无',arrow:'箭头',bar:'横线',dot:'实心点',circle:'圆形',circle_outline:'空心圆',triangle:'三角',triangle_outline:'空心三角',diamond:'菱形',diamond_outline:'空心菱形',crowfoot_one:'一',crowfoot_many:'多',crowfoot_one_or_many:'一或多'};
 const icon=body=>`<svg viewBox="0 0 32 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const headIcon=value=>icon('<path d="M3 12H22"/>'+({none:'<path d="m24 9 5 6m0-6-5 6" opacity=".4"/>',arrow:'<path d="m18 6 7 6-7 6"/>',bar:'<path d="M24 5v14"/>',dot:'<circle cx="23" cy="12" r="4" fill="currentColor"/>',circle:'<circle cx="23" cy="12" r="5" fill="currentColor"/>',circle_outline:'<circle cx="23" cy="12" r="5"/>',triangle:'<path d="m27 12-10-6v12Z" fill="currentColor"/>',triangle_outline:'<path d="m27 12-10-6v12Z"/>',diamond:'<path d="m28 12-6-6-6 6 6 6Z" fill="currentColor"/>',diamond_outline:'<path d="m28 12-6-6-6 6 6 6Z"/>',crowfoot_one:'<path d="M20 6v12M25 6v12"/>',crowfoot_many:'<path d="m28 5-9 7 9 7M19 12h10"/>',crowfoot_one_or_many:'<path d="M16 5v14m12-14-9 7 9 7M19 12h10"/>'})[value??'none']);
@@ -47,29 +48,41 @@ export class ConnectionStyleModal extends Modal{
  onClose(){forms.get(this.contentEl)?.();if(this.plugin.modal===this)this.plugin.modal=null;this.contentEl.empty();}
 }
 export class ConnectionSettingTab extends PluginSettingTab{
- constructor(plugin){super(plugin.app,plugin);this.plugin=plugin;}
- display(){
-  this.plugin.refreshLanguage();
-  this.radialRoot?.ttWheelFit?.destroy();
-  if(this.connectionRoot)forms.get(this.connectionRoot)?.();const root=this.containerEl;root.empty();root.addClass('tt-settings-page');
-  new Setting(root).setName(tr('界面语言')).setDesc(tr('仅切换插件界面文字，不翻译已保存的卡片、笔记或自定义名称。重新打开其他面板以更新显示。')).addDropdown(d=>{d.addOption('auto',tr('跟随 Obsidian')).addOption('zh','中文').addOption('en','English').setValue(this.plugin.data.language??'auto').onChange(async value=>{d.setDisabled(true);try{await this.plugin.setUiLanguage(value);if(root.isConnected)this.update();}catch(error){d.setValue(this.plugin.data.language??'auto');this.plugin.error(error);}finally{d.setDisabled(false);}});});
+ constructor(plugin){super(plugin.app,plugin);this.plugin=plugin;this.sections=new Map();}
+ getSettingDefinitions(){return settingsDefinitions(this);}
+ renderLanguage(setting){
+  this.containerEl.addClass('tt-settings-page');
+  setting.addDropdown(d=>{d.addOption('auto',tr('跟随 Obsidian')).addOption('zh','中文').addOption('en','English').setValue(this.plugin.data.language??'auto').onChange(async value=>{d.setDisabled(true);try{await this.plugin.setUiLanguage(value);if(this.containerEl.isConnected)this.update();}catch(error){d.setValue(this.plugin.data.language??'auto');this.plugin.error(error);}finally{d.setDisabled(false);}});});
+ }
+ block(setting){setting.setClass('tt-settings-block');setting.infoEl.hidden=true;return setting.controlEl;}
+ renderNavigation(setting){
+  const root=this.block(setting);
+  setting.setClass('tt-settings-navigation');
   const pageTitle=root.createEl('p',{cls:'tt-muted',text:tr('按用途调整轮盘、字体、连线和卡片资源。'),attr:{id:'tt-settings-'+crypto.randomUUID()}});
   const dependency=dependencyState(this.plugin);if(!dependency.ready)root.createDiv({cls:'tt-muted',attr:{role:'status'},text:dependency.message});
   const nav=root.createEl('nav',{cls:'tt-settings-nav',attr:{'aria-labelledby':pageTitle.id}});
-  const section=label=>{const el=root.createEl('section',{cls:'tt-settings-section'});const b=nav.createEl('button',{text:label,attr:{type:'button'}});b.onclick=()=>{el.style.scrollMarginTop=(nav.offsetHeight+parseFloat(root.ownerDocument.defaultView.getComputedStyle(root).paddingTop)+8)+'px';el.scrollIntoView({block:'start'});const heading=el.querySelector('.setting-item-heading .setting-item-name');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}};return el;};
-  const radial=this.radialRoot=section(tr('快捷轮盘'));radialSettings(radial,this.plugin);
-  const font=section(tr('节点字体'));fontSettings(font,this.plugin);
-  const configs=section(tr('配置分享'));new Setting(configs).setName(tr('配置导入与导出')).setHeading();new Setting(configs).setName(tr('模板、模块与轮盘')).setDesc(tr('导入前预览并处理重名；已有卡片保持原样。')).addButton(b=>b.setButtonText(tr('导入／导出配置')).onClick(()=>openConfigTransfer(this.plugin)));
-  this.connectionRoot=section(tr('默认连线'));form(this.connectionRoot,this.plugin);
-  const templates=section(tr('卡片模板'));new Setting(templates).setName(tr('卡片模板管理')).setHeading();const templateInfo=new Setting(templates).setName(tr('已保存的卡片模板'));const describe=()=>templateInfo.setDesc(tr('共 ')+this.plugin.templates().length+tr(' 个模板 · 默认：')+this.plugin.defaultTemplate().name);describe();templateInfo.addButton(b=>b.setButtonText(tr('管理模板')).onClick(()=>{const modal=TemplateView.openManager(this.plugin);modal.onClosed=()=>{if(templates.isConnected)describe();};}));
-  new Setting(templates).setName(tr('创意卡牌选择')).setDesc(tr('默认关闭。新建节点时可手动切换卡牌或常规选择；记住选择方式，拖动浏览后确认应用。')).addToggle(t=>t.setValue(this.plugin.data.cardTemplatePicker===true).onChange(async value=>{t.setDisabled(true);try{await setCardPickerMode(this.plugin,value);}catch(error){t.setValue(this.plugin.data.cardTemplatePicker===true);this.plugin.error(error);}finally{t.setDisabled(false);}}));
-  const assets=section(tr('资源管理'));new Setting(assets).setName(tr('资源管理')).setHeading();const summary=assets.createDiv(),status=assets.createDiv({cls:'tt-muted',attr:{role:'status'}}),token=this.summaryToken={};
-  let refreshButton;const refresh=async()=>{if(this.summaryToken!==token||!root.isConnected||this.plugin.stopped)return;refreshButton.disabled=true;status.textContent=tr('正在读取资源概览…');try{const report=await this.plugin.assets.observe();if(this.summaryToken!==token||!root.isConnected||this.plugin.stopped)return;resourceStats(summary,report);status.textContent=report.errors.length?tr('扫描未完成，以上为部分结果；请打开管理资源查看。'):tr('可整理包含为撤销保留的附件，不代表现在即可回收。');}catch(e){if(this.summaryToken===token)status.textContent=tr('读取失败：')+e.message;}finally{if(this.summaryToken===token)refreshButton.disabled=false;}};
-  new Setting(assets).setName(tr('卡片附件与回收站')).setDesc(tr('查看引用、设置保存位置与文件名，或恢复已回收的附件。')).addButton(b=>{refreshButton=b.buttonEl;b.setButtonText(tr('刷新概览')).onClick(refresh);}).addButton(b=>b.setButtonText(tr('管理资源')).onClick(()=>{const modal=new AssetModal(this.plugin);modal.onClosed=refresh;modal.open();}));refresh();
-  for(const el of root.querySelectorAll('.tt-settings-section')){const heading=el.querySelector('.setting-item-heading .setting-item-name');if(heading){heading.id='tt-section-'+crypto.randomUUID();el.setAttribute('aria-labelledby',heading.id);}}
-
+  for(const [key,label]of [['radial','快捷轮盘'],['font','节点字体'],['configs','配置分享'],['connection','默认连线'],['templates','卡片模板'],['assets','资源管理']]){const b=nav.createEl('button',{text:tr(label),attr:{type:'button'}});b.onclick=()=>{const el=this.sections.get(key);if(!el?.isConnected)return;el.style.scrollMarginTop=(nav.offsetHeight+parseFloat(this.containerEl.ownerDocument.defaultView.getComputedStyle(this.containerEl).paddingTop)+8)+'px';el.scrollIntoView({block:'start'});const heading=el.querySelector('.setting-item-heading .setting-item-name');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}};}
  }
-
- hide(){this.radialRoot?.ttWheelFit?.destroy();this.summaryToken=null;if(this.connectionRoot)forms.get(this.connectionRoot)?.();}
+ renderSection(setting,key){
+  const el=this.block(setting);el.addClass('tt-settings-section');el.dataset.ttSettingsSection=key;this.sections.set(key,el);
+  if(key==='radial'){this.radialRoot=el;radialSettings(el,this.plugin);}
+  else if(key==='font')fontSettings(el,this.plugin);
+  else if(key==='configs'){new Setting(el).setName(tr('配置导入与导出')).setHeading();new Setting(el).setName(tr('模板、模块与轮盘')).setDesc(tr('导入前预览并处理重名；已有卡片保持原样。')).addButton(b=>b.setButtonText(tr('导入／导出配置')).onClick(()=>openConfigTransfer(this.plugin)));}
+  else if(key==='connection'){this.connectionRoot=el;form(el,this.plugin);}
+  else if(key==='templates')this.renderTemplates(el);
+  else if(key==='assets')this.renderAssets(el);
+  const heading=el.querySelector('.setting-item-heading .setting-item-name');if(heading){heading.id='tt-section-'+crypto.randomUUID();el.setAttribute('aria-labelledby',heading.id);}
+  return ()=>{el.ttWheelFit?.destroy();forms.get(el)?.();if(this.sections.get(key)===el)this.sections.delete(key);if(this.radialRoot===el)this.radialRoot=null;if(this.connectionRoot===el)this.connectionRoot=null;if(this.summaryToken?.root===el)this.summaryToken=null;};
+ }
+ renderTemplates(root){
+  new Setting(root).setName(tr('卡片模板管理')).setHeading();const templateInfo=new Setting(root).setName(tr('已保存的卡片模板'));const describe=()=>templateInfo.setDesc(tr('共 ')+this.plugin.templates().length+tr(' 个模板 · 默认：')+this.plugin.defaultTemplate().name);describe();templateInfo.addButton(b=>b.setButtonText(tr('管理模板')).onClick(()=>{const modal=TemplateView.openManager(this.plugin);modal.onClosed=()=>{if(root.isConnected)describe();};}));
+  new Setting(root).setName(tr('创意卡牌选择')).setDesc(tr('默认关闭。新建节点时可手动切换卡牌或常规选择；记住选择方式，拖动浏览后确认应用。')).addToggle(t=>t.setValue(this.plugin.data.cardTemplatePicker===true).onChange(async value=>{t.setDisabled(true);try{await setCardPickerMode(this.plugin,value);}catch(error){t.setValue(this.plugin.data.cardTemplatePicker===true);this.plugin.error(error);}finally{t.setDisabled(false);}}));
+ }
+ renderAssets(root){
+  new Setting(root).setName(tr('资源管理')).setHeading();const summary=root.createDiv(),status=root.createDiv({cls:'tt-muted',attr:{role:'status'}}),token=this.summaryToken={root};
+  let refreshButton;const refresh=async()=>{if(this.summaryToken!==token||!root.isConnected||this.plugin.stopped)return;refreshButton.disabled=true;status.textContent=tr('正在读取资源概览…');try{const report=await this.plugin.assets.observe();if(this.summaryToken!==token||!root.isConnected||this.plugin.stopped)return;resourceStats(summary,report);status.textContent=report.errors.length?tr('扫描未完成，以上为部分结果；请打开管理资源查看。'):tr('可整理包含为撤销保留的附件，不代表现在即可回收。');}catch(e){if(this.summaryToken===token)status.textContent=tr('读取失败：')+e.message;}finally{if(this.summaryToken===token)refreshButton.disabled=false;}};
+  new Setting(root).setName(tr('卡片附件与回收站')).setDesc(tr('查看引用、设置保存位置与文件名，或恢复已回收的附件。')).addButton(b=>{refreshButton=b.buttonEl;b.setButtonText(tr('刷新概览')).onClick(refresh);}).addButton(b=>b.setButtonText(tr('管理资源')).onClick(()=>{const modal=new AssetModal(this.plugin);modal.onClosed=refresh;modal.open();}));refresh();
+ }
+ hide(){super.hide();this.radialRoot?.ttWheelFit?.destroy();this.summaryToken=null;if(this.connectionRoot)forms.get(this.connectionRoot)?.();}
 }
 

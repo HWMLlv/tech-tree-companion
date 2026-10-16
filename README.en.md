@@ -2,6 +2,12 @@
 
 [中文](README.md) | **English**
 
+### New in 0.4.34: Navigation and Card Shapes
+
+Version 0.4.34 adds a color- and shape-aware minimap, in-canvas predecessor/successor focus, and ellipse, circle and diamond starter templates. Connection focus keeps the current node, direct neighbors and their arrows clear while dimming unrelated areas. Click another card to continue; click empty canvas or press Escape to exit. The connection list is an auxiliary action, not the primary experience. A temporary overlay leaves element appearance and geometry untouched; overlapping elements and strongly curved arrows may not be outlined precisely. Existing cards and custom wheel layouts are not migrated automatically. Shaped technology cards remain SVG image elements, so they do not acquire all native shape selection and manual binding behavior. Parent/child cards remain deferred.
+
+In native view mode, invoke the relation command or minimap branch button first, then click a node. This does not require or write a native selection. While relation browsing is active, card clicks follow relationships instead of opening notes or SVG assets. Exiting restores normal link behavior; panning is not treated as a click. Switching between view and edit mode ends the temporary focus. Navigation caches reduce repeated target resolution and geometry serialization; they are not a claim of whole-application CPU/GPU savings. App-owned tooltips use one shared path, including dynamic redraws, without changing native editor tooltips.
+
 **Keep common actions beside your cursor. Build technology trees in Excalidraw.**
 
 Tech Tree Companion extends Excalidraw in Obsidian with a customizable quick wheel, reusable SVG cards, and linked note details. Organize the overview on your canvas and keep the full design in your notes.

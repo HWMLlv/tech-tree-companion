@@ -3,6 +3,7 @@ import {textLayout} from './text-layout.js';
 import {ICONS,iconBody} from './icons.js';
 import {effectiveFont,fontStack,validFont} from './fonts.js';
 import {isColor,validateAppearance,renderFrame} from './appearance.js';
+import {cardShape,containsShapePoint,containsModule} from './card-shape.js';
 export const SCHEMA=1;
 export const FONT_SIZES=[12,16,22,30,40];
 export const moduleDefaultFontSize=type=>type==='title'?22:type==='button'?12:16;
@@ -24,19 +25,20 @@ export const DEFAULT_TEMPLATE={id:'builtin-tech',version:1,name:'基础科技卡
 ]};
 const colors=/^#[0-9a-f]{6}$/i;
 const number=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
-export const outsideModules=t=>t.modules.filter(m=>m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7);
+export const outsideModules=t=>t.modules.filter(m=>m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7||cardShape(t)!=='rectangle'&&!containsModule(t,m));
 export function validateTemplate(t,{allowOverflow=false}={}){
  if(!t||!t.id||!t.name?.trim()||!Number.isInteger(t.version)||t.version<1)throw Error(tr('模板名称或版本无效'));
  if(t.fontFamily&&!validFont(t.fontFamily))throw Error(tr('字体名称无效，请输入本机字体名称'));
  if(!number(t.width,80,2400)||!number(t.height,64,2400)||!number(t.grid,1,64)||!isColor(t.background)||!isColor(t.border))throw Error(tr('模板尺寸或颜色无效'));
  validateAppearance(t);
+ if(!['rectangle','ellipse','diamond'].includes(cardShape(t)))throw Error(tr('不支持的卡片形状'));
  if(!Array.isArray(t.modules)||t.modules.length>100)throw Error(tr('模板最多包含 100 个模块'));
  const ids=new Set();
  for(const m of t.modules){
   if(!m.id||ids.has(m.id))throw Error(tr('模块标识重复'));ids.add(m.id);
   if(!['title','summary','field','text','divider','button','icon'].includes(m.type))throw Error(tr('未知模块类型'));
   if(!number(m.x,0,2400)||!number(m.y,0,2400)||!number(m.w,8,2400)||!number(m.h,2,2400))throw Error(tr('模块位置或尺寸无效'));
-  if(!allowOverflow&&(m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7))throw Error(tr('模块超出卡片边界，请扩大外框或移动／调整越界模块后保存'));
+  if(!allowOverflow&&(m.x+m.w>t.width+1e-7||m.y+m.h>t.height+1e-7||cardShape(t)!=='rectangle'&&!containsModule(t,m)))throw Error(tr('模块超出卡片边界，请扩大外框或移动／调整越界模块后保存'));
   if((m.fontWeight!==undefined&&![400,600,700].includes(m.fontWeight))||!number(m.fontSize,8,80)||!colors.test(m.color)||!['left','center','right'].includes(m.align))throw Error(tr('模块文字样式无效'));
   if(['title','summary','field'].includes(m.type)&&!/^[a-zA-Z][\w-]{0,63}$/.test(m.field??''))throw Error(tr('字段键需使用字母开头的英文、数字、下划线或连字符'));
   if(m.type==='icon'&&!Object.hasOwn(ICONS,m.icon))throw Error(tr('请选择支持的图标'));
@@ -82,5 +84,13 @@ export function localPoint(e,p){
  const x=(dx*Math.cos(a)-dy*Math.sin(a))/(e.width/2),y=(dx*Math.sin(a)+dy*Math.cos(a))/(e.height/2);
  return {x:(x*(e.scale?.[0]??1)+1)*t.width/2,y:(y*(e.scale?.[1]??1)+1)*t.height/2};
 }
-export function hitNode(e,p){const q=localPoint(e,p),t=e.customData.techTree.template;return q.x>=0&&q.y>=0&&q.x<=t.width&&q.y<=t.height;}
-export function hitButton(e,p){const q=localPoint(e,p);return [...e.customData.techTree.template.modules].reverse().find(m=>m.type==='button'&&q.x>=m.x&&q.y>=m.y&&q.x<=m.x+m.w&&q.y<=m.y+m.h);}
+export function hitNode(e,p){const q=localPoint(e,p),t=e.customData.techTree.template;return containsShapePoint(cardShape(t),q.x,q.y,t.width,t.height);}
+export function hitButton(e,p){if(!hitNode(e,p))return;const q=localPoint(e,p);return [...e.customData.techTree.template.modules].reverse().find(m=>m.type==='button'&&q.x>=m.x&&q.y>=m.y&&q.x<=m.x+m.w&&q.y<=m.y+m.h);}
+export function shapeTemplate(kind){
+ const t=clone(DEFAULT_TEMPLATE),size={ellipse:[384,240],circle:[256,256],diamond:[384,256]}[kind];
+ if(!size)return {...t,modules:[]};
+ [t.width,t.height]=size;t.shape=kind==='circle'?'ellipse':kind;
+ const layout={ellipse:[[92,64,200,36],[72,104,240,32],[152,152,80,28]],circle:[[56,64,144,36],[48,108,160,36],[88,160,80,28]],diamond:[[132,76,120,36],[104,116,176,28],[156,156,72,28]]}[kind];
+ t.modules=[t.modules[0],t.modules[1],t.modules[4]].map((m,i)=>({...m,x:layout[i][0],y:layout[i][1],w:layout[i][2],h:layout[i][3],align:'center'}));
+ return t;
+}

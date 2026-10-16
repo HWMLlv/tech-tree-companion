@@ -1,10 +1,11 @@
 import {tr} from './i18n.js';
+import {setHint} from './ui-hints.js';
 import {replaceSvg} from './svg-dom.js';
 import {TECH_ICON,iconSVG} from './icons.js';
 import {resizeTemplate,tidyNumber,renderFrame} from './appearance.js';
 import {modulePreset,placePreset} from './module-presets.js';
 import {ItemView,Modal,Notice,Scope} from 'obsidian';
-import {clone,moduleDefaultFontSize,uid,validateTemplate,outsideModules,fields} from './model.js';
+import {clone,moduleDefaultFontSize,uid,validateTemplate,outsideModules,fields,shapeTemplate} from './model.js';
 import {confirmAction} from './node-modal.js';
 import {drawTemplateProperties} from './appearance-ui.js';
 export const TEMPLATE_VIEW='tech-tree-template-center';
@@ -25,7 +26,8 @@ export class TemplateView extends ItemView{
   const selector=top.createEl('select',{attr:{'aria-label':tr('选择模板')}});for(const t of this.plugin.templates())selector.createEl('option',{value:t.id,text:t.name+' · v'+t.version});if(!this.plugin.templates().some(t=>t.id===this.template.id))selector.createEl('option',{value:this.template.id,text:this.template.name+tr(' · 未保存')});selector.value=this.template.id;
   selector.onchange=async()=>{if(this.dirty&&!await confirmAction(this.app,tr('放弃当前模板草稿，切换到另一个模板？'))){selector.value=this.template.id;return;}this.template=clone(this.plugin.templates().find(t=>t.id===selector.value));this.resetEditing();};
   top.createEl('button',{text:tr('管理模板')}).onclick=()=>TemplateView.openManager(this.plugin,this);
-  top.createEl('button',{text:tr('新建模板')}).onclick=async()=>{if(this.dirty&&!await confirmAction(this.app,tr('放弃当前模板草稿并新建？')))return;this.template={...this.plugin.freshTemplate(),id:uid(),version:1,name:tr('新模板'),modules:[]};this.resetEditing();this.changed();};
+  const shape=top.createEl('select',{attr:{'aria-label':tr('新模板形状')}});for(const [value,label]of [['rectangle',tr('矩形')],['ellipse',tr('椭圆')],['circle',tr('圆形')],['diamond',tr('菱形')]])shape.createEl('option',{value,text:label});shape.value=this.newShape??'rectangle';shape.onchange=()=>this.newShape=shape.value;
+  top.createEl('button',{text:tr('新建模板')}).onclick=async()=>{if(this.dirty&&!await confirmAction(this.app,tr('放弃当前模板草稿并新建？')))return;this.template={...shapeTemplate(shape.value),id:uid(),version:1,name:tr('新模板')};for(const module of this.template.modules)module.label=tr(module.label);this.resetEditing();this.changed();};
   top.createEl('button',{text:tr('保存'),cls:'mod-cta'}).onclick=()=>this.save(false).catch(e=>this.plugin.error(e));
   top.createEl('button',{text:tr('另存为新模板')}).onclick=()=>this.save(true).catch(e=>this.plugin.error(e));
   top.createEl('button',{text:tr('设为默认')}).onclick=async()=>{if(this.dirty||!this.plugin.templates().some(t=>t.id===this.template.id)){new Notice(tr('请先保存模板'));return;}try{await this.manageTemplate('default',this.template.id);new Notice(tr('已设为默认模板'));}catch(e){this.plugin.error(e);}};
@@ -170,9 +172,9 @@ class TemplateManagerModal extends Modal{
  }
  button(tr('复制'),()=>this.manage('copy',t.id));button(tr('设为默认'),()=>this.manage('default',t.id)).disabled=!!this.renaming||t.id===this.plugin.data.defaultTemplate;
  button(tr('删除'),async()=>{const fallback=this.plugin.templates().find(x=>x.id!==t.id);if(!fallback)throw Error(tr('至少保留一个可用模板'));if(!await confirmAction(this.app,tr('删除模板“')+t.name+tr('”？已有卡片保持原样。')+(this.plugin.data.defaultTemplate===t.id?tr('默认模板将改为“')+fallback.name+'”。':'')))return;await this.manage('delete',t.id);}).disabled=!!this.renaming||this.plugin.templates().length===1;
- }this.refreshPreviews();this.contentEl.scrollTop=scrollTop;}
+ }this.refreshPreviews();this.plugin.hintRoot?.(this.contentEl);this.contentEl.scrollTop=scrollTop;}
  focusRename(id){[...this.list.querySelectorAll('[data-rename]')].find(b=>b.dataset.rename===id)?.focus();}
- refreshPreviews(){if(!this.list?.isConnected)return;for(const img of this.list.querySelectorAll('[data-template-preview]')){const t=this.plugin.templates().find(t=>t.id===img.dataset.templatePreview);if(!t)continue;try{const values=TemplateView.prototype.previewValues.call({template:t}),rendered=this.plugin.render(this,t,values,true);img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);img.title=rendered.fontMessage||tr('示例内容，仅供预览');}catch(e){img.removeAttribute('src');img.alt=tr('预览暂不可用：')+e.message;}}}
+ refreshPreviews(){if(!this.list?.isConnected)return;for(const img of this.list.querySelectorAll('[data-template-preview]')){const t=this.plugin.templates().find(t=>t.id===img.dataset.templatePreview);if(!t)continue;try{const values=TemplateView.prototype.previewValues.call({template:t}),rendered=this.plugin.render(this,t,values,true);img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(rendered.svg);setHint(img,rendered.fontMessage||tr('示例内容，仅供预览'));}catch(e){img.removeAttribute('src');img.alt=tr('预览暂不可用：')+e.message;setHint(img,img.alt);}}}
  async run(fn){if(this.busy)return;this.busy=true;this.status.textContent='';for(const b of this.list.querySelectorAll('button'))b.disabled=true;try{await fn();if(this.contentEl.isConnected)this.draw();}catch(e){if(this.contentEl.isConnected){this.status.textContent=e.message;this.draw();}}finally{this.busy=false;}}
  manage(action,id,name){return TemplateView.prototype.manageTemplate.call(this.view??{plugin:this.plugin},action,id,name);}
  onClose(){if(this.view)this.view.managerModal=null;this.plugin.templateManagers?.delete(this);this.contentEl.empty();this.onClosed?.();}

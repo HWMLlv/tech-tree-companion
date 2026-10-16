@@ -9,7 +9,7 @@ export function resourceStats(root,report){
 export class AssetModal extends Modal{
  constructor(plugin){super(plugin.app);this.plugin=plugin;}
  onOpen(){(this.plugin.resourceModals??=new Set()).add(this);this.modalEl.addClass('tt-resource-modal');this.titleEl.setText(tr('科技树资源管理'));this.contentEl.createEl('p',{text:tr('查看卡片附件、调整保存方式，或恢复已回收的文件。相同卡片共用图片，扫描不会删除文件。')});
-  this.settings();this.scanButton=this.contentEl.createEl('button',{text:tr('扫描引用与附件')});this.scanButton.onclick=()=>this.scan();this.result=this.contentEl.createDiv();this.scan();
+  this.settings();this.scanButton=this.contentEl.createEl('button',{text:tr('扫描引用与附件')});this.scanButton.onclick=()=>this.scan();this.result=this.contentEl.createDiv();this.plugin.hintRoot?.(this.contentEl);this.scan();
  }
  settings(){
   const p=this.plugin,box=this.contentEl.createEl('details',{cls:'tt-resource-settings'});box.createEl('summary',{text:tr('保存位置与文件名')});

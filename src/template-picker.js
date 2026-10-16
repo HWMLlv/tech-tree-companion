@@ -42,7 +42,7 @@ export class TemplatePicker extends Modal{
   root.onkeydown=e=>{if(e.isComposing||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey||e.target===this.search)return;const step={ArrowLeft:-1,ArrowRight:1}[e.key];if(step){e.preventDefault();this.select(this.cursor+step);}else if(e.key==='Home'||e.key==='End'){e.preventDefault();this.selectIndex(e.key==='Home'?0:this.filtered.length-1);}else if(e.key==='Enter'&&e.target===this.stage){e.preventDefault();this.choose();}};
   this.blur=()=>{if(this.drag)this.endDrag({pointerId:this.drag.id},true);this.resetClicks();};win.addEventListener('blur',this.blur);
   this.observer=new win.ResizeObserver(()=>{if(this.closed)return;this.geometrySize=null;if(this.drag)this.endDrag({pointerId:this.drag.id},true);this.paint();});this.observer.observe(this.stage);
-  this.filter();prepareHints(root);for(const el of root.querySelectorAll('[data-tt-hint]'))el.removeAttribute('data-tt-hint');this.stage.focus({preventScroll:true});
+  this.filter();prepareHints(root,{hints:false});this.stage.focus({preventScroll:true});
  }
  filter(){
   this.stopMotion();this.releaseDrag();this.filtered=filterTemplates(this.all,this.search.value);
@@ -67,7 +67,7 @@ export class TemplatePicker extends Modal{
    button.toggleClass('is-default',t.id===this.defaultId);
    const art=button.createSpan({cls:'tt-template-picker-art'});button.createSpan({cls:'tt-template-picker-name',text:t.name});
    if(t.id===this.defaultId){engineeringFrame(button,t);button.createSpan({cls:'tt-template-picker-default',text:tr('默认模板')});}
-   prepareHints(button);button.removeAttribute('data-tt-hint');this.preview(t,art);
+   prepareHints(button,{hints:false});this.preview(t,art);
   }
   button.onclick=e=>{if(this.gridMode)this.selectIndex(Number(button.dataset.virtualSlot));else if(e.detail===0)this.select(Number(button.dataset.virtualSlot));};
   this.cards.set(index,button);return button;

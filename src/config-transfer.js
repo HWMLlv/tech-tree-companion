@@ -2,7 +2,7 @@ import {tr} from './i18n.js';
 import {clone,validateTemplate,DEFAULT_TEMPLATE,uid} from './model.js';
 import {radialConfig} from './radial-model.js';
 const pick=(value,keys)=>Object.fromEntries(keys.filter(k=>Object.hasOwn(value,k)).map(k=>[k,clone(value[k])]));
-const templateKeys=['id','name','version','width','height','grid','background','border','fontFamily','appearance','modules'];
+const templateKeys=['id','name','version','width','height','grid','background','border','fontFamily','appearance','modules','shape'];
 const moduleKeys=['id','type','field','label','x','y','w','h','fontSize','fontWeight','color','align','icon','action','fillColor'];
 const appearanceKeys=['strokeWidth','strokeStyle','roughness','corner','opacity','textOpacity','fillStyle'];
 function cleanTemplate(value){

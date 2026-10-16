@@ -1,4 +1,5 @@
 {
+  "待选择关系节点": "Select a node to view connections",
   "透明": "Transparent",
   "自定义": "Custom",
   "背景": "Background",
@@ -782,5 +783,23 @@
   "创意卡牌选择": "Creative card picker",
   "默认关闭。新建节点时可手动切换卡牌或常规选择；记住选择方式，拖动浏览后确认应用。": "Off by default. Switch manually between the card view and standard picker when creating a node. Remembers your choice; browse by dragging and confirm to apply.",
   "先选择模板，再进入节点编辑。左右循环翻牌；取消不会创建节点。": "Choose a template first, then edit the node. Flip through cards in a loop; cancel does not create a node.",
-  "开启后，新建节点先进入卡牌选择，确认模板后再编辑。关闭时直接进入原编辑界面；记住选择方式。": "When enabled, new nodes start with card selection; confirm a template before editing. When off, open the original editor directly. Remembers your choice."
+  "开启后，新建节点先进入卡牌选择，确认模板后再编辑。关闭时直接进入原编辑界面；记住选择方式。": "When enabled, new nodes start with card selection; confirm a template before editing. When off, open the original editor directly. Remembers your choice.",
+  "查看前置与后续": "View predecessors and successors",
+  "请先选择一个节点": "Select a single node first",
+  "未命名图形": "Unnamed shape",
+  "查看关系": "View connections",
+  "查看关系列表": "Connection list",
+  "画布关系聚焦": "Canvas connection focus",
+  "退出关系聚焦": "Exit connection focus",
+  "刷新": "Refresh",
+  "返回上个节点": "Back to previous node",
+  "定位当前节点": "Locate current node",
+  "直接前置": "Direct predecessors",
+  "直接后续": "Direct successors",
+  "没有直接前置节点": "No direct predecessors",
+  "没有直接后续节点": "No direct successors",
+  "卡片形状": "Card shape",
+  "圆／椭圆": "Circle / ellipse",
+  "新模板形状": "New template shape",
+  "不支持的卡片形状": "Unsupported card shape"
 }

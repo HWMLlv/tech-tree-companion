@@ -5,6 +5,7 @@ import {appearance,resizeTemplate,tidyNumber} from './appearance.js';
 import {fontInput} from './font-ui.js';
 import {moduleFontWeight,FONT_SIZES,buttonFill} from './model.js';
 import {ColorPopup} from './color-popup.js';
+import {cardShape} from './card-shape.js';
 const STROKES=['#1e1e1e','#e03131','#2f9e44','#1971c2','#f08c00'];
 const BACKGROUNDS=['transparent','#ffc9c9','#b2f2bb','#a5d8ff','#ffec99'];
 const icon=body=>`<svg viewBox="0 0 32 24" aria-hidden="true">${body}</svg>`;
@@ -20,13 +21,14 @@ export function colorControls(root,label,colors,value,onChange,options={}){
 }
 export function appearanceControls(root,t,onChange,options={}){
  const a=appearance(t),set=(key,value)=>onChange(d=>{d.appearance={...appearance(d),[key]:value};});
+ if(options.allowShape)choices(root,tr('卡片形状'),[{value:'rectangle',label:tr('矩形'),icon:icon('<rect x="4" y="3" width="24" height="18" rx="2" fill="none" stroke="currentColor"/>')},{value:'ellipse',label:tr('圆／椭圆'),icon:icon('<ellipse cx="16" cy="12" rx="12" ry="9" fill="none" stroke="currentColor"/>')},{value:'diamond',label:tr('菱形'),icon:icon('<path d="M16 2L30 12L16 22L2 12Z" fill="none" stroke="currentColor"/>')}],cardShape(t),v=>onChange(d=>d.shape=v));
  colorControls(root,tr('描边'),STROKES,t.border,v=>onChange(d=>d.border=v),options);
  colorControls(root,tr('背景'),BACKGROUNDS,t.background,v=>onChange(d=>d.background=v),options);
  if(t.background!=='transparent')choices(root,tr('填充'),[{value:'hachure',label:tr('斜线'),icon:icon('<path d="M4 16L16 4M8 20L24 4M16 20L28 8" stroke="currentColor" fill="none"/>')},{value:'cross-hatch',label:tr('交叉线'),icon:icon('<path d="M4 16L16 4M8 20L24 4M16 20L28 8M4 8L16 20M8 4L24 20M16 4L28 16" stroke="currentColor"/>')},{value:'solid',label:tr('实心'),icon:icon('<rect x="6" y="4" width="20" height="16" rx="2" fill="currentColor"/>')}],a.fillStyle,v=>set('fillStyle',v));
  choices(root,tr('描边宽度'),[0,1,2,4,6].map((v,i)=>({value:v,label:[tr('无描边'),tr('细'),tr('标准'),tr('粗'),tr('很粗')][i],icon:icon(`<path d="M5 12H27" stroke="currentColor" stroke-width="${Math.max(1,v)}" stroke-linecap="round"${v===0?' opacity=".2"':''}/>`)})),a.strokeWidth,v=>set('strokeWidth',v));
  choices(root,tr('边框样式'),['solid','dashed','dotted'].map((v,i)=>({value:v,label:[tr('实线'),tr('虚线'),tr('点线')][i],icon:icon(`<path d="M4 12H28" stroke="currentColor" stroke-width="2" stroke-linecap="round"${i?' stroke-dasharray="'+(i===1?'6 4':'1 4')+'"':''}/>`)})),a.strokeStyle,v=>set('strokeStyle',v));
  choices(root,tr('线条风格'),[{value:0,label:tr('平滑'),icon:icon('<path d="M4 17L28 7" fill="none" stroke="currentColor" stroke-width="2"/>')},{value:1,label:tr('轻手绘'),icon:icon('<path d="M4 17Q12 12 17 13T28 7" fill="none" stroke="currentColor" stroke-width="2"/>')},{value:2,label:tr('手绘'),icon:icon('<path d="M4 18L10 13L12 15L20 8L21 12L28 6M5 16L13 10L17 14L27 8" fill="none" stroke="currentColor"/>')}],a.roughness,v=>set('roughness',v));
- choices(root,tr('边角'),[{value:'square',label:tr('直角'),icon:icon('<path d="M6 20V5H27" fill="none" stroke="currentColor" stroke-width="2"/>')},{value:'round',label:tr('圆角'),icon:icon('<path d="M6 20V13Q6 5 14 5H27" fill="none" stroke="currentColor" stroke-width="2"/>')}],a.corner,v=>set('corner',v));
+ if(cardShape(t)==='rectangle')choices(root,tr('边角'),[{value:'square',label:tr('直角'),icon:icon('<path d="M6 20V5H27" fill="none" stroke="currentColor" stroke-width="2"/>')},{value:'round',label:tr('圆角'),icon:icon('<path d="M6 20V13Q6 5 14 5H27" fill="none" stroke="currentColor" stroke-width="2"/>')}],a.corner,v=>set('corner',v));
  for(const [key,label]of [['opacity',tr('外框与背景不透明度')],['textOpacity',tr('内容不透明度')]]){
   const row=root.createEl('label',{cls:'tt-style-group'}),caption=row.createDiv({cls:'tt-style-label',text:label}),slider=row.createEl('input',{type:'range',attr:{min:'0',max:'100',step:'5','aria-label':label}});slider.value=String(a[key]);const value=caption.createSpan({cls:'tt-style-number',text:a[key]+'%'});slider.oninput=()=>value.textContent=slider.value+'%';slider.onchange=()=>set(key,Number(slider.value));
  }
@@ -46,7 +48,7 @@ export function drawTemplateProperties(view){
  if(tab==='appearance'){
   textInput(content,tr('模板名称'),t.name,'text',v=>edit(d=>d.name=v));
   choices(content,tr('卡片大小'),[{value:'compact',label:tr('紧凑')},{value:'normal',label:tr('标准')},{value:'wide',label:tr('宽卡片')}],t.width===288&&t.height===196?'compact':t.width===352&&t.height===240?'normal':t.width===448&&t.height===240?'wide':'custom',v=>edit(d=>{const size={compact:[288,196],normal:[352,240],wide:[448,240]}[v];resizeTemplate(d,...size);}));
-  appearanceControls(content,t,edit,{owner:view.plugin});
+  appearanceControls(content,t,edit,{owner:view.plugin,allowShape:true});
   const extra=advanced(content,view,'advancedTemplate');for(const [key,label]of [['width',tr('节点宽度')],['height',tr('节点高度')],['grid',tr('网格间距')]])textInput(extra,label,t[key],'number',v=>edit(d=>d[key]=v));
   extra.createEl('p',{cls:'tt-muted',text:tr('改变卡片大小只调整外框，已有模块的位置和大小保持不变；越界模块会提示，调整后才能保存。已有节点不会自动更新。')});return;
  }

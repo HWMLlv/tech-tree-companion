@@ -1,6 +1,7 @@
 import {tr,setLanguage,sourceKey,getLanguage} from './i18n.js';
 import {replaceSvg} from './svg-dom.js';
 import {CanvasNavigation} from './navigation.js';
+import {NodeTargets} from './node-targets.js';
 import {openConfigTransfer} from './config-ui.js';
 import {openBatch} from './batch-ui.js';
 import {NativeArrowDefaults} from './native-arrow-defaults.js';
@@ -40,9 +41,10 @@ export default class TechTreePlugin extends Plugin{
   this.colorPickers=new Set();this.fontPickers=new Set();this.data.fontFamily=fontName(this.data.fontFamily??DEFAULT_FONT);this.placement=null;
   this.canvasDocuments=new Set();this.scanUntil=0;this.owners=new Map();this.panels=new Map();this.busy=new Set();this.modal=null;this.origin=null;
   this.measureCache=new WeakMap();this.nativeFonts=new NativeFonts(this,async url=>(await requestUrl({url,method:'GET'})).arrayBuffer);this.fontRenders=new WeakMap();
-  this.assets=new Assets(this);this.fontSubset=new FontSubset(this);
+  this.assets=new Assets(this);this.fontSubset=new FontSubset(this);this.linkRevision=0;
+  this.registerEvent(this.app.metadataCache.on('resolved',()=>this.linkRevision++));
   this.registerEvent(this.app.workspace.on('editor-change',()=>this.assets.revision++));
-  for(const event of ['create','modify','delete','rename'])this.registerEvent(this.app.vault.on(event,file=>{this.assets.revision++;if(/\.excalidraw(?:\.md)?$/i.test(file.path))this.assets.schedule();}));
+  for(const event of ['create','modify','delete','rename'])this.registerEvent(this.app.vault.on(event,file=>{this.assets.revision++;if(file.extension==='md')this.linkRevision++;if(/\.excalidraw(?:\.md)?$/i.test(file.path))this.assets.schedule();}));
   this.assets.schedule();
   this.addCommand({id:'manage-resources',name:tr('资源管理：扫描与恢复附件'),callback:()=>new AssetModal(this).open()});
   this.registerView(TEMPLATE_VIEW,leaf=>new TemplateView(leaf,this));
@@ -62,6 +64,8 @@ export default class TechTreePlugin extends Plugin{
   this.ribbonEl=this.addRibbonIcon(TECH_ICON,tr('科技树模板中心'),()=>this.openTemplates());
   this.addCommand({id:'create-node',name:tr('新建科技节点'),checkCallback:checking=>{const v=this.view();if(!v)return false;if(!checking)this.openNode(v);return true;}});
   this.addCommand({id:'edit-node',name:tr('编辑节点'),checkCallback:checking=>{const v=this.view(),e=this.selected(v);if(!e)return false;if(!checking)this.openNode(v,e);return true;}});
+  this.addCommand({id:'node-relations',name:tr('查看前置与后续'),checkCallback:checking=>{const v=this.navigationView(),nav=v&&this.owners.get(v)?.navigation,selected=nav?.relationSelection()??[];if(!nav?.valid()||(!nav.state().viewModeEnabled&&selected.length!==1))return false;if(!checking)nav.openRelations();return true;}});
+  this.addCommand({id:'node-relation-list',name:tr('查看关系列表'),checkCallback:checking=>{const v=this.navigationView(),nav=v&&this.owners.get(v)?.navigation,id=nav?.relationId??nav?.relationSelection()?.[0];if(!nav?.valid()||!id)return false;if(!checking)nav.openRelationList(id);return true;}});
   this.addCommand({id:'node-icons',name:tr('更换节点图标'),checkCallback:checking=>{const v=this.view(),e=this.selected(v);if(!e?.customData.techTree.template.modules.some(m=>m.type==='icon'))return false;if(!checking&&!this.modal){this.openNode(v,e);this.modal?.openIcons();}return true;}});
   this.addCommand({id:'open-details',name:tr('打开详情'),checkCallback:checking=>{const v=this.view(),e=this.selected(v);if(!e)return false;if(!checking)this.details(v,e).catch(e=>this.error(e));return true;}});
   this.registerEvent(this.app.workspace.on('layout-change',()=>this.scheduleScan()));
@@ -74,7 +78,7 @@ export default class TechTreePlugin extends Plugin{
  addCommand(command){(this.localizedCommands??=new Map()).set(command.id,sourceKey(command.name));return super.addCommand(command);}
  refreshLanguage(){setLanguage(this.data.language,obsidianLanguage());for(const [id,key]of this.localizedCommands??[]){const command=this.app.commands.commands[this.manifest.id+':'+id];if(command)command.name=this.manifest.name+': '+tr(key);}this.ribbonEl?.setAttribute('aria-label',tr('科技树模板中心'));}
  async setUiLanguage(value){const before=this.data.language;this.data.language=['zh','en'].includes(value)?value:'auto';try{await this.persist();}catch(e){this.data.language=before;throw e;}this.refreshLanguage();for(const owner of this.owners.values())owner.radial?.cancel();}
- hintRoot(root){const doc=root.ownerDocument;if(!this.hints.has(doc))this.hints.set(doc,new Hints(doc));this.hints.get(doc).refresh(root);}
+ hintRoot(root,options){const doc=root.ownerDocument;if(!this.hints.has(doc))this.hints.set(doc,new Hints(doc));this.hints.get(doc).refresh(root,options);}
  onunload(){this.stopped=true;for(const flight of this.templateFlights??[])flight.cancel();this.assets?.destroy();for(const modal of this.resourceModals??[])modal.close();for(const modal of this.templateManagers??[])modal.close();for(const picker of this.iconPickers??[])picker.close();for(const picker of this.templatePickers??[])picker.close();this.fontSubset?.destroy();window.clearTimeout(this.scanTimer);for(const hints of this.hints.values())hints.destroy();this.hints.clear();this.nativeFonts.destroy();for(const picker of this.colorPickers)picker.close();for(const picker of this.fontPickers)picker.close();this.cancelPlacement();for(const [v,o]of this.owners)v.removeChild(o);this.owners.clear();for(const p of this.panels.values())p.destroy();this.panels.clear();this.modal?.close();}
  error(e){console.error('[科技树]',e);new Notice(e.message??String(e));}
  requireExcalidraw(doc){const state=dependencyState(this,doc);if(!state.ready)throw Error(state.message);return state;}
@@ -154,13 +158,13 @@ export default class TechTreePlugin extends Plugin{
   if(pending&&Date.now()<this.scanUntil)this.scanTimer=window.setTimeout(()=>this.scan(),100);
  }
  attach(v){
-  const owner=new Component();owner.file=v.file;owner.api=v.excalidrawAPI;owner.targets=new Map();this.owners.set(v,owner);v.addChild(owner);
+  const owner=new Component();owner.file=v.file;owner.api=v.excalidrawAPI;owner.targetIndex=new NodeTargets();owner.targets=owner.targetIndex.targets;this.owners.set(v,owner);v.addChild(owner);
   owner.radial=new RadialMenu(this,v,owner);owner.arrowDefaults=new NativeArrowDefaults(this,v,owner);
   owner.navigation=new CanvasNavigation(this,v,owner);
   const doc=v.containerEl.ownerDocument;let down=null;
   const reflect=(elements,state)=>{
    if(this.placement?.view===v){if(v.file!==this.placement.target.file||v.excalidrawAPI!==this.placement.target.api||!elements.some(e=>e.id===this.placement.sourceId)||!state.selectedElementIds[this.placement.sourceId])this.cancelPlacement();else this.placement.paint();}
-   for(const e of elements)if(isTech(e)&&e.link){try{owner.targets.set(e.id,this.resolve(e.link,v.file.path).file);}catch{/* A broken link has no resolvable target; the detail action reports it. */}}else owner.targets.delete(e.id);
+   owner.targetIndex.sync(elements,link=>this.resolve(link,v.file.path).file,this.linkRevision,v.file.path);
    const selected=elements.filter(e=>state.selectedElementIds[e.id]);v.containerEl.toggleClass('tt-tech-selected',selected.length===1&&isTech(selected[0]));
    if(state.croppingElementId&&elements.some(e=>e.id===state.croppingElementId&&isTech(e)))v.excalidrawAPI.updateScene({appState:{croppingElementId:null},captureUpdate:'NEVER'});
   };
@@ -170,7 +174,7 @@ export default class TechTreePlugin extends Plugin{
   const point=ev=>{const s=v.excalidrawAPI.getAppState();return {x:(ev.clientX-s.offsetLeft)/s.zoom.value-s.scrollX,y:(ev.clientY-s.offsetTop)/s.zoom.value-s.scrollY};};
   const hit=ev=>[...v.excalidrawAPI.getSceneElements()].reverse().find(e=>isTech(e)&&!e.locked&&hitNode(e,point(ev)));
   owner.registerDomEvent(doc,'pointerdown',ev=>{
-   down=null;if(this.placement?.view===v)this.cancelPlacement();if(!this.live(v)||!canvas(ev)||ev.button!==0||ev.ctrlKey||ev.metaKey||ev.altKey||ev.shiftKey||v.excalidrawAPI.getAppState().activeTool.type!=='selection')return;
+   down=null;if(this.placement?.view===v)this.cancelPlacement();if(owner.navigation.relationId||!this.live(v)||!canvas(ev)||ev.button!==0||ev.ctrlKey||ev.metaKey||ev.altKey||ev.shiftKey||v.excalidrawAPI.getAppState().activeTool.type!=='selection')return;
    const e=hit(ev);if(!e)return;const button=hitButton(e,point(ev));if(button)down={id:e.id,action:button.action,x:ev.clientX,y:ev.clientY,pointerId:ev.pointerId};
   },true);
   owner.registerDomEvent(doc,'pointerup',ev=>{
@@ -181,11 +185,12 @@ export default class TechTreePlugin extends Plugin{
   owner.registerDomEvent(doc,'pointercancel',()=>down=null,true);
   owner.registerDomEvent(doc,'dblclick',ev=>{
    if(!this.live(v)||!canvas(ev)||ev.button!==0||v.excalidrawAPI.getAppState().activeTool.type!=='selection')return;
+   if(owner.navigation.relationId){ev.preventDefault();ev.stopImmediatePropagation();return;}
    const e=hit(ev);if(!e)return;ev.preventDefault();ev.stopImmediatePropagation();this.openNode(v,e);
   },true);
   owner.registerDomEvent(doc,'keydown',ev=>{
    if(this.placement?.view===v&&ev.key==='Escape'){ev.preventDefault();ev.stopImmediatePropagation();this.cancelPlacement();return;}
-   if(!this.live(v)||this.modal||this.busy.has(v)||ev.isComposing||ev.altKey||ev.shiftKey)return;
+   if(owner.navigation.relationId||!this.live(v)||this.modal||this.busy.has(v)||ev.isComposing||ev.altKey||ev.shiftKey)return;
    if(!v.containerEl.contains(ev.target)||ev.target.closest?.('input,textarea,[contenteditable="true"],.cm-editor,.tt-panel,.tt-minimap'))return;
    const state=v.excalidrawAPI.getAppState(),source=this.selected(v);if(!source||state.editingTextElement||state.activeTool.type!=='selection')return;
    if(ev.key==='Enter'&&!ev.ctrlKey&&!ev.metaKey){ev.preventDefault();ev.stopImmediatePropagation();this.openNode(v,source);return;}

@@ -19,8 +19,7 @@ export class IconPicker extends Modal{
   this.preview=root.createDiv({cls:'tt-icon-selection',attr:{role:'status','aria-live':'polite'}});const actions=root.createDiv({cls:'tt-icon-actions'});actions.createEl('button',{text:tr('取消'),attr:{type:'button'}}).onclick=()=>this.close();this.confirm=actions.createEl('button',{text:tr('使用此图标'),cls:'mod-cta',attr:{type:'button'}});this.confirm.onclick=()=>this.choose();this.scope.register(['Mod'],'Enter',()=>{this.choose();return false;});this.updateSelection();
   // Visible category and icon names make popup hints redundant. Preserve their
   // accessible names without letting the host infer tooltips from aria-label.
-  this.owner?.hints?.get(root.ownerDocument)?.clear();prepareHints(root);
-  for(const el of root.querySelectorAll('[data-tt-hint]'))el.removeAttribute('data-tt-hint');
+  this.owner?.hints?.get(root.ownerDocument)?.clear();prepareHints(root,{hints:false});
   this.gallery.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
  }
  updateSelection(){
@@ -38,5 +37,5 @@ export function iconInput(root,value,onChoose,{app,owner,...options}={}){
  for(const key of ICON_GROUPS[0].keys){const option=quick.createEl('button',{cls:'tt-style-choice',attr:{type:'button','data-quick-icon':key,'aria-label':tr(ICONS[key].label),'aria-pressed':String(key===value)}});replaceSvg(option,iconSVG(key));option.onclick=()=>apply(key);}
  const button=root.createEl('button',{cls:'tt-icon-trigger',attr:{type:'button','aria-label':tr('更多图标'),'aria-haspopup':'dialog'}}),art=button.createSpan({cls:'tt-icon-trigger-art'}),label=button.createSpan();
  function update(){for(const option of quick.querySelectorAll('[data-quick-icon]'))option.setAttribute('aria-pressed',String(option.dataset.quickIcon===value));art.style.color=options.color??'#1e293b';replaceSvg(art,iconSVG(value));label.textContent=tr('当前：')+tr(ICONS[value].label)+tr(' · 更多图标');}
- update();button.onclick=()=>new IconPicker(app,value,apply,{owner,...options,onClose:()=>{if(button.isConnected)button.focus({preventScroll:true});}}).open();return button;
+ update();button.onclick=()=>new IconPicker(app,value,apply,{owner,...options,onClose:()=>{if(button.isConnected)button.focus({preventScroll:true});}}).open();owner?.hintRoot?.(root);return button;
 }

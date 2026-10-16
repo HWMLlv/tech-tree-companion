@@ -7,6 +7,19 @@ import {tr,setLanguage,resolveLanguage,sourceKey} from '../src/i18n.js';
 import {radialConfig} from '../src/radial-model.js';
 import {titleForRelink} from '../src/node-link-title.js';
 
+test('English translations retain placeholders and only the intentional shade suffix is blank',()=>{
+ const placeholders=text=>[...text.matchAll(/\{\d+\}/g)].map(m=>m[0]).sort();
+ for(const [source,translated]of Object.entries(en)){
+  assert.equal(typeof translated,'string',source);if(source===' 档')assert.equal(translated,' ');else assert.ok(translated.trim(),source);
+  assert.deepEqual(placeholders(translated),placeholders(source),source);
+ }
+});
+
+test('English locale source contains no duplicate keys hidden by JSON parsing',()=>{
+ const ast=parse('('+fs.readFileSync(new URL('../src/locales/en.json',import.meta.url),'utf8')+')',{ecmaVersion:'latest'}),keys=ast.body[0].expression.properties.map(p=>p.key.value);
+ assert.equal(new Set(keys).size,keys.length);
+});
+
 test('explicit language overrides host; auto follows Chinese locales and otherwise English',()=>{
  for(const host of ['zh','zh-CN','zh-TW','zh_HK'])assert.equal(resolveLanguage('auto',host),'zh');
  for(const host of ['en','en-GB','de','unknown'])assert.equal(resolveLanguage('auto',host),'en');

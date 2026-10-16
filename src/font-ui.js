@@ -24,7 +24,7 @@ export class FontPicker extends Modal{
    const read=extra.createEl('button',{text:tr('读取本机字体列表')}),status=extra.createDiv({cls:'tt-muted',attr:{role:'status'}});
    read.onclick=async()=>{read.disabled=true;try{const fonts=await win.queryLocalFonts();if(!this.modalEl.isConnected)return;this.names=[...this.names,...fonts.map(f=>f.family).filter(validFont)];status.textContent=tr`已读取 ${new Set(fonts.map(f=>f.family)).size} 个字体家族。`;this.search.value='';this.draw();}catch{status.textContent=tr('当前宿主不允许读取字体列表，仍可手动输入字体名称。');}finally{read.disabled=false;}};
   }else extra.createEl('p',{cls:'tt-muted',text:tr('当前宿主没有开放本机字体枚举接口，仍可手动输入。')});
-  this.names=[...(this.owner?.nativeFonts?.names(root.ownerDocument)??[]),...this.names];this.draw();this.observeNativeFonts();this.search.focus();
+  this.names=[...(this.owner?.nativeFonts?.names(root.ownerDocument)??[]),...this.names];this.draw();this.observeNativeFonts();this.owner?.hintRoot?.(root);this.search.focus();
  }
  observeNativeFonts(){this.stopNativeWatch?.();if(!this.owner?.nativeFonts?.watch){this.refreshButton.hidden=true;return;}this.stopNativeWatch=this.owner.nativeFonts.watch(this.contentEl.ownerDocument,(names,state)=>{if(!this.modalEl.isConnected)return;const top=this.list.scrollTop,focused=this.contentEl.ownerDocument.activeElement?.dataset?.font;this.names=[...names,...this.names.filter(n=>!nativeFont(n)),...(this.value?[this.value]:[])];this.registryStatus.textContent=state==='ready'?'':state==='waiting'?tr('正在等待 Excalidraw 原生字体就绪，列表会自动更新。'):tr('原生字体尚未完整就绪，请确认已启用 Excalidraw 后重新检测。');this.refreshButton.hidden=state==='ready';this.draw();this.list.scrollTop=top;if(focused)[...this.list.querySelectorAll('button')].find(b=>b.dataset.font===focused)?.focus();});}
  async choose(name){if(this.choosing)return;this.choosing=true;this.status.textContent=tr('正在准备字体…');this.owner?.nativeFonts?.cache?.retry();try{if(this.owner?.nativeFonts)await this.owner.nativeFonts.ensure(this.contentEl.ownerDocument,this.owner.nativeFonts.plan(this.contentEl.ownerDocument,name||this.globalFont,tr('科技树 Aa 123')));if(this.modalEl.isConnected&&!this.owner?.stopped){this.onChoose(name);this.close();}}catch(e){this.status.textContent=e.message;new Notice(e.message);}finally{this.choosing=false;}}
@@ -38,7 +38,7 @@ export class FontPicker extends Modal{
 }
 export function fontInput(container,value,onChange,inherit=false,{app,globalFont=DEFAULT_FONT,owner}={}){
  const b=container.createEl('button',{cls:'tt-font-trigger',attr:{type:'button','aria-label':inherit?tr('本模板字体'):tr('通用字体'),'aria-haspopup':'dialog'}});let current=value??'';
- const paint=()=>{b.empty();b.createSpan({text:current?fontLabel(current):tr('跟随通用 · ')+fontLabel(globalFont)});const sample=b.createSpan({cls:'tt-font-trigger-sample',text:tr('科技树 Aa ▾')});sample.style.fontFamily=fontStack(current||globalFont);if(owner?.nativeFonts){const doc=sample.ownerDocument;owner.nativeFonts.ensure(doc,owner.nativeFonts.plan(doc,current||globalFont,sample.textContent)).catch(()=>{});}};
+ const paint=()=>{b.empty();b.createSpan({text:current?fontLabel(current):tr('跟随通用 · ')+fontLabel(globalFont)});const sample=b.createSpan({cls:'tt-font-trigger-sample',text:tr('科技树 Aa ▾')});sample.style.fontFamily=fontStack(current||globalFont);if(owner?.nativeFonts){const doc=sample.ownerDocument;owner.nativeFonts.ensure(doc,owner.nativeFonts.plan(doc,current||globalFont,sample.textContent)).catch(()=>{});}owner?.hintRoot?.(b);};
  b.onclick=()=>new FontPicker(app,current,name=>{current=name;onChange(name);paint();},{inherit,globalFont,owner}).open();paint();return b;
 }
 export function fontSettings(el,plugin){
@@ -46,5 +46,6 @@ export function fontSettings(el,plugin){
  const setting=new Setting(el).setName(tr('通用字体')).setDesc(tr('打开完整字体列表，可按中文名称查找并比较效果；模板专用字体优先。'));
  fontInput(setting.controlEl,font,v=>font=v,false,{app:plugin.app,globalFont:plugin.data.fontFamily,owner:plugin});
  new Setting(el).setDesc(tr('保存影响模板预览和之后创建的节点。已有节点保留外观；选中后运行“更新选中节点字体”主动应用，可一次撤销。')).addButton(b=>b.setButtonText(tr('保存通用字体')).setCta().onClick(async()=>{if(!validFont(font)){new Notice(tr('请输入有效的本机字体名称'));return;}const before=plugin.data.fontFamily;try{plugin.data.fontFamily=font;await plugin.persist();for(const l of plugin.app.workspace.getLeavesOfType('tech-tree-template-center')){l.view.paint?.();l.view.drawProperties?.();}new Notice(tr('通用字体已保存'));}catch(e){plugin.data.fontFamily=before;plugin.error(e);}}));
+ plugin.hintRoot?.(el);
 }
 export class FontModal extends Modal{constructor(plugin){super(plugin.app);this.plugin=plugin;}onOpen(){fontSettings(this.contentEl,this.plugin);}onClose(){if(this.plugin.modal===this)this.plugin.modal=null;this.contentEl.empty();}}

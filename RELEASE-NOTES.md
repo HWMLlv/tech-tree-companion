@@ -1,4 +1,25 @@
+# Tech Tree Companion 0.4.34
+
 ## 中文
+
+- 小地图增加形状、主色、透明轮廓和箭头方向；画布内可聚焦直接前置与后续，也可查看关系列表。
+- 查看模式先开启关系浏览再点击节点，不再误开文档或 SVG；退出后恢复原生链接，平移不误触点选。
+- 模板中心可创建椭圆、圆形和菱形布局；不自动改变已有卡片，SVG 图片仍受原生选择和手工连线能力限制。
+- 统一自有界面的悬停提示，保留动态改名、键盘提示、原生编辑器和无额外提示的卡牌／图标列表。
+- 完善设置搜索，清理 JS／CSS 规范警告，优化重复文档解析与小地图几何检查。
+- 核对中英文翻译和变量占位符，更新双语指南及根 README 的英文安装／使用步骤。
+
+更新前保存画布并关闭编辑窗口。仅替换 `main.js`、`manifest.json`、`styles.css`，保留 `data.json`、字体缓存和卡片附件。创意卡牌仍默认关闭，已有手动选择保留。桌面版；需要 Obsidian 1.13.7+、Excalidraw 2.25.3+。
+
+## English
+
+See [English release notes](RELEASE-NOTES.en.md). This release adds shape-aware navigation, in-canvas connection browsing, shaped template layouts, unified tooltips, searchable settings, and bounded navigation caches. Existing cards and explicit preferences are preserved. The creative card picker remains off by default.
+
+Windows host checks and local regression/lint checks do not establish macOS/Linux acceptance. Overlapping shapes and strongly curved connections may not be outlined precisely. Mobile is unsupported. Tagged workflow artifacts and their matching attestations establish build provenance, not Community approval.
+
+## 历史版本 0.4.32
+
+### 中文
 
 本版加入中英文界面，重新整理项目介绍，并改进轮盘编辑中的重复功能提示和布局稳定性。
 

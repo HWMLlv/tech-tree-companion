@@ -26,8 +26,13 @@ Use Node.js **24 LTS** and npm:
 ```sh
 npm ci --ignore-scripts
 npm run lint
+npm run lint:css
 npm test
 npm run build
 ```
 
 The release files are in `dist/`. Commit the source, `manifest.json`, `versions.json`, lockfile, README, license, and notices. Do not commit `dist/` or a generated root `main.js`. See [SUBMISSION.md](../SUBMISSION.md) for the current publication steps and validation boundaries.
+
+CSS validation uses the complete official `stylelint-config-obsidianmd` preset without disabling its rules. Both JavaScript and CSS lint reject warnings in CI. The CSS command intentionally accepts the fixed `styles.css` filename rather than external glob patterns.
+
+As of the 2026-10-16 local audit, `npm audit --omit=dev` reports no known runtime dependency vulnerabilities. The development-only Stylelint chain reports nine affected packages from the single unpatched `braces` advisory [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm). This is not a clean all-dependencies audit. Do not feed untrusted file patterns to the lint tools; reassess when an upstream fix is available. Stylelint and its dependencies are not bundled into the three plugin release files.

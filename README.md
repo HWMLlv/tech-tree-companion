@@ -6,6 +6,8 @@
 
 Tech Tree Companion 是 Obsidian 中的 Excalidraw 辅助插件。用自定义快捷轮盘完成日常操作，用卡片和连线表达科技关系，再把卡片关联到笔记里的详细设计。
 
+Tech Tree Companion extends Excalidraw with a customizable quick wheel, reusable SVG technology cards, linked Markdown notes, and canvas navigation. The interface supports Chinese and English. This independent companion is desktop-only and requires Excalidraw to be installed separately. See the [English guide](README.en.md) for the full illustrated introduction.
+
 [快速开始](#快速开始) · [界面语言](#界面语言) · [隐私与存储](docs/PRIVACY.zh-CN.md) · [下载发布版](https://github.com/HWMLlv/tech-tree-companion/releases)
 
 ## 一套轮盘，保留你的操作习惯
@@ -51,10 +53,31 @@ Tech Tree Companion 是 Obsidian 中的 Excalidraw 辅助插件。用自定义�
 | --- | --- |
 | 搜索与定位 | 在当前绘图中按名称、字段、模板或关联路径查找卡片 |
 | 小地图 | 查看分布、点击定位、拖动平移；启用状态可跨绘图保留 |
+| 前置与后续 | 在画布中突出当前节点、直接相邻节点和连线；查看模式下先开启关系浏览，再点击节点 |
 | 返回上个视图 | 回到之前的画布位置与缩放，与文件历史中的“返回”区分 |
 | 关联检查 | 检查笔记或章节是否仍可访问，再由你选择替换目标 |
 | 批量外观 | 预览并统一选中卡片的外观或图标，保留正文、位置和关联 |
 | 配置分享 | 导入导出模板、模块预设和轮盘配置，逐项处理冲突 |
+
+小地图保留矩形、椭圆与菱形的简化轮廓、主色和箭头方向。关系浏览支持返回、空白处退出和 Esc，不改写元素外观或连线；关系模式内点击卡片不会误开文档或 SVG，退出后恢复原生链接行为。
+
+模板中心可新建椭圆、圆形与菱形布局。已有卡片保持原样，不自动迁移。科技卡仍是 SVG 图片，并不具备原生图形的全部选择和手工连线能力；重叠元素和复杂曲线的关系遮罩也可能不够精确。
+
+## Installation
+
+1. Use desktop Obsidian **1.13.7 or later**. Install and enable **Excalidraw 2.25.3 or later** first.
+2. In **Settings > Community plugins**, browse for **Tech Tree Companion**, install it, and enable it.
+3. For manual installation, download `main.js`, `manifest.json`, and `styles.css` from [GitHub Releases](https://github.com/HWMLlv/tech-tree-companion/releases). Place these files in `<vault>/<configDir>/plugins/tech-tree-companion/`, reload Obsidian, and enable the plugin. The default configuration directory is `.obsidian`.
+
+Save drawings and close editors before upgrading. Preserve `data.json`, generated card attachments, and font caches; replace only the three program files. Mobile is not supported. Windows is tested; macOS and Linux host integration remain unverified.
+
+## Usage
+
+Open an editable Excalidraw drawing and run **Create technology node** from the command palette. Fill in the card fields and optionally link a Markdown note or heading. Use **Template center** to customize reusable layouts; existing cards change only when you explicitly apply a template update.
+
+Configure the quick wheel in plugin settings. Use **Search and locate nodes**, the minimap, and **View predecessors and successors** to navigate. In native view mode, activate connection browsing before clicking a node; press Escape or click empty canvas to exit. The creative card picker and auxiliary outer wheel are optional and off by default. Interface language changes do not translate saved notes, cards, templates, or custom wheel names.
+
+No account or telemetry is required. The only font network access downloads versioned Chinese handwriting font shards when needed and absent from the local cache; note text and paths are not uploaded. See [Privacy and storage](docs/PRIVACY.en.md) for network destinations and local file operations.
 
 ## 快速开始
 

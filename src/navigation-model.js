@@ -14,6 +14,12 @@ export function searchNodes(entries,query,templateId=''){
  return entries.filter(e=>(!templateId||e.templateId===templateId)&&words.every(word=>normalizeSearch([e.title,e.content,e.link,e.template].join(' ')).includes(word)))
  .sort((a,b)=>Number(normalizeSearch(b.title)===normalizeSearch(query))-Number(normalizeSearch(a.title)===normalizeSearch(query))||a.title.localeCompare(b.title,'zh-CN'));
 }
+export function elementTitle(element,elements=[]){
+ if(isTech(element))return nodeEntries([element])[0].title;
+ const byId=elements instanceof Map?elements:new Map(elements.map(e=>[e.id,e]));
+ const label=(element.boundElements??[]).filter(e=>e.type==='text').map(e=>byId.get(e.id)).filter(e=>e&&!e.isDeleted).map(e=>e.text??'').join(' ').trim();
+ return element.text||element.name||label||element.link||tr('未命名图形');
+}
 export function elementPoints(e){
  const points=e.points?.filter(p=>Array.isArray(p)&&p.length>=2&&p.slice(0,2).every(Number.isFinite))??[];
  if(!points.length)return [];
@@ -42,4 +48,4 @@ export function viewport(state){const zoom=state.zoom.value;return {x:-state.scr
 export function focusState(element,state){const b=elementBounds(element),zoom=Math.min(state.zoom.value,Math.max(.1,Math.min((state.width-80)/Math.max(1,b.width),(state.height-80)/Math.max(1,b.height))));return {scrollX:state.width/(2*zoom)-b.x-b.width/2,scrollY:state.height/(2*zoom)-b.y-b.height/2,zoom:{value:zoom}};}
 
 // Copy primitive geometry into the cache key: the host may mutate element objects in place.
-export const mapGeometryKey=elements=>JSON.stringify(elements.map(e=>[e.id,e.type,e.isDeleted,e.x,e.y,e.width,e.height,e.angle,e.points,!!e.customData?.techTree]));
+export const mapGeometryKey=elements=>JSON.stringify(elements.map(e=>[e.id,e.type,e.isDeleted,e.x,e.y,e.width,e.height,e.angle,e.points,e.strokeColor,e.backgroundColor,e.opacity,e.startArrowhead,e.endArrowhead,e.customData?.techTree?[e.customData.techTree.template?.shape,e.customData.techTree.template?.background,e.customData.techTree.template?.border,e.customData.techTree.template?.appearance?.opacity]:null]));

@@ -21,7 +21,8 @@ export const AUXILIARY_ACTIONS=[
  ['search-nodes','搜索节点','search'],['toggle-minimap','小地图','map'],['navigation-back','返回上个视图','undo-2'],
  ['batch-appearance','批量外观','palette'],['check-node-links','检查关联','link'],['config-transfer','配置分享','share-2'],
  ['refresh-node-fonts','更新字体','type'],['optimize-node-assets','优化附件','package'],
- ['template-center','模板中心','workflow'],['connection-style','默认连线样式','workflow'],['radial-settings','编辑轮盘','pencil']
+ ['template-center','模板中心','workflow'],['connection-style','默认连线样式','workflow'],['radial-settings','编辑轮盘','pencil'],
+ ['node-relations','查看前置与后续','git-branch'],['node-relation-list','查看关系列表','list']
 ];
 export function auxiliaryConfig(input){
  const source=Array.isArray(input)?input:AUXILIARY_ACTIONS.slice(0,6).map(([id,label])=>({id,label})),seen=new Set();

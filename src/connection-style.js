@@ -1,5 +1,6 @@
 // Store presentation only. Element IDs, bindings and route coordinates must
 // never become defaults for a different pair of nodes.
+import {cardShape} from './card-shape.js';
 export const DEFAULT_CONNECTION_STYLE={elbowed:true,strokeColor:'#334155',strokeWidth:1,strokeStyle:'solid',roughness:0,opacity:100,roundness:{type:2},startArrowhead:null,endArrowhead:'arrow'};
 export const ARROWHEADS=[null,'arrow','bar','dot','circle','circle_outline','triangle','triangle_outline','diamond','diamond_outline','crowfoot_one','crowfoot_many','crowfoot_one_or_many'];
 export const validStrokeColor=s=>typeof s==='string'&&/^(#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})|transparent)$/i.test(s);
@@ -21,7 +22,8 @@ export function arrowEndpoints(e){
 }
 export function bindAtSide(arrow,key,node,side,along=.5){
  const gap=5+(arrow.strokeWidth??1)/2,xGap=gap/node.width,yGap=gap/node.height;
- const fixedPoint={left:[-xGap,along],right:[1+xGap,along],top:[along,-yGap],bottom:[along,1+yGap]}[side];
+ const shape=cardShape(node.customData?.techTree?.template),offset=shape==='ellipse'?(1-Math.sqrt(Math.max(0,1-(2*along-1)**2)))/2:shape==='diamond'?Math.abs(2*along-1)/2:0;
+ const fixedPoint={left:[offset-xGap,along],right:[1-offset+xGap,along],top:[along,offset-yGap],bottom:[along,1-offset+yGap]}[side];
  arrow[key]={...arrow[key],elementId:node.id,mode:'orbit',fixedPoint};
 }
 function convertBindings(e,elements,endpoints){

@@ -1,6 +1,6 @@
 {
   "name": "tech-tree-companion",
-  "version": "0.4.33",
+  "version": "0.4.34",
   "author": "HWMLlv",
   "license": "MIT",
   "private": true,
@@ -11,7 +11,8 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test test/*.test.mjs",
-    "lint": "eslint src"
+    "lint": "eslint src --max-warnings 0",
+    "lint:css": "stylelint styles.css --max-warnings 0"
   },
   "dependencies": {
     "@codemirror/commands": "6.11.1",
@@ -28,6 +29,8 @@
   "devDependencies": {
     "eslint": "9.39.5",
     "eslint-plugin-obsidianmd": "0.4.2",
-    "obsidian": "1.8.7"
+    "obsidian": "1.8.7",
+    "stylelint": "17.16.0",
+    "stylelint-config-obsidianmd": "0.1.0"
   }
 }
